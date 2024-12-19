@@ -11,12 +11,15 @@ mod imp {
         pub fn strstr(s: *const c_char, n: *const c_char) -> *mut c_char;
         pub fn strcmp(s1: *const c_char, s2: *const c_char) -> c_int;
         pub fn memchr(s: *const c_void, c: c_int, n: size_t) -> *mut c_void;
+        pub fn malloc(size: size_t) -> *mut c_void;
+        pub fn free(ptr: *mut c_void);
+        pub fn realloc(ptr: *mut c_void, size: size_t) -> *mut c_void;
     }
 }
 
 #[cfg(feature = "libc")]
 mod imp {
-    pub use libc::{memchr, strcasecmp, strcmp, strlen, strstr};
+    pub use libc::{free, malloc, memchr, realloc, strcasecmp, strcmp, strlen, strstr};
 }
 
 pub use imp::*;

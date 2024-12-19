@@ -8,13 +8,14 @@
 extern crate alloc;
 
 mod array;
+mod boxed;
 mod cursor;
 mod ffi;
 mod macros;
 mod thin;
 mod utils;
 
-pub use crate::{array::*, cursor::*, thin::*};
+pub use crate::{array::*, boxed::*, cursor::*, thin::*};
 
 /// An error indicating that no nul byte was present or that a byte slice contains interior nul
 /// bytes.
