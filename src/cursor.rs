@@ -1,4 +1,4 @@
-use core::ptr;
+use core::{fmt, ptr};
 
 use crate::{utils::memchr, CStr};
 
@@ -231,5 +231,28 @@ impl Drop for Cursor<'_> {
             // write nul terminator
             self.buffer[self.offset] = 0;
         }
+    }
+}
+
+impl fmt::Write for Cursor<'_> {
+    fn write_str(&mut self, s: &str) -> fmt::Result {
+        self.write_str(s).map_err(|_| fmt::Error)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    use core::fmt::Write;
+
+    #[test]
+    fn format() {
+        let mut buffer = [0; 128];
+        let mut cur = Cursor::new(&mut buffer, 0);
+        write!(&mut cur, "foobar").ok();
+        write!(&mut cur, " 123456").ok();
+        cur.finish();
+        assert!(buffer.starts_with(b"foobar 123456"));
     }
 }
