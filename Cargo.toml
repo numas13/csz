@@ -1,0 +1,23 @@
+[package]
+name = "csz"
+description = "Abstractions for nul-terminated C strings"
+license = "LGPL-3.0-only"
+version = "0.1.0"
+authors = ["Denis Drakhnia <numas13@gmail.com>"]
+edition = "2021"
+rust-version = "1.64"
+documentation = "https://docs.rs/csz"
+repository = "https://github.com/numas13/csz"
+keywords = ["cstr", "cstring", "ffi", "no_std"]
+categories = ["data-structures", "development-tools::ffi", "no-std", "no-std::no-alloc"]
+
+[features]
+default = []
+alloc = []
+
+[dependencies]
+libc = { version = "0.2", optional = true }
+
+[build-dependencies]
+autocfg = "1.4"
+cc = "1"
