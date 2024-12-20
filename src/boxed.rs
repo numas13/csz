@@ -417,7 +417,7 @@ mod tests {
     #[test]
     fn hash() {
         fn hash<T: Hash>(t: &T) -> u64 {
-            use std::hash::DefaultHasher;
+            use std::collections::hash_map::DefaultHasher;
             let mut s = DefaultHasher::new();
             t.hash(&mut s);
             s.finish()

@@ -20,4 +20,3 @@ libc = { version = "0.2", optional = true }
 
 [build-dependencies]
 autocfg = "1.4"
-cc = "1"
