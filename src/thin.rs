@@ -2,6 +2,7 @@ use core::{
     cmp::Ordering,
     ffi::{c_char, CStr},
     fmt::{self, Write},
+    hash::{Hash, Hasher},
     marker::PhantomData,
     ptr, slice,
 };
@@ -490,6 +491,12 @@ impl alloc::borrow::ToOwned for CStrThin {
     }
 }
 
+impl Hash for CStrThin {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.bytes().for_each(|i| i.hash(state));
+    }
+}
+
 /// An iterator over the bytes of a [CStrThin], without the nul terminator.
 ///
 /// This struct is created by the [bytes](CStrThin::bytes) method on [CStrThin].
@@ -587,6 +594,7 @@ mod tests {
         assert_eq!(s1, s2);
     }
 
+    #[cfg(feature = "alloc")]
     #[test]
     fn to_owned() {
         let s = cstr!("hello");

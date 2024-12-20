@@ -1,4 +1,11 @@
-use core::{borrow::Borrow, ffi::c_char, fmt, ops::Deref, ptr};
+use core::{
+    borrow::Borrow,
+    ffi::c_char,
+    fmt,
+    hash::{Hash, Hasher},
+    ops::Deref,
+    ptr,
+};
 
 use crate::{
     macros::const_assert_size_eq, utils::memchr, CStrBox, CStrThin, Cursor, CursorError, NulError,
@@ -299,6 +306,12 @@ impl<const N: usize> fmt::Debug for CStrArray<N> {
 impl<const N: usize> Borrow<CStrThin> for CStrArray<N> {
     fn borrow(&self) -> &CStrThin {
         self.as_c_str()
+    }
+}
+
+impl<const N: usize> Hash for CStrArray<N> {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.bytes().for_each(|i| i.hash(state));
     }
 }
 

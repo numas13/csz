@@ -2,7 +2,9 @@ use core::{
     borrow::Borrow,
     cmp::Ordering,
     ffi::{c_char, CStr},
-    fmt, mem,
+    fmt,
+    hash::{Hash, Hasher},
+    mem,
     ops::Deref,
     ptr::{self, NonNull},
 };
@@ -323,7 +325,7 @@ impl PartialOrd<CStrThin> for CStrBox {
 
 impl PartialOrd<CStrBox> for CStrThin {
     fn partial_cmp(&self, other: &CStrBox) -> Option<Ordering> {
-        Some(self.cmp(&other))
+        Some(self.cmp(other))
     }
 }
 
@@ -348,6 +350,12 @@ impl Ord for CStrBox {
 impl Borrow<CStrThin> for CStrBox {
     fn borrow(&self) -> &CStrThin {
         self.as_c_str()
+    }
+}
+
+impl Hash for CStrBox {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.bytes().for_each(|i| i.hash(state));
     }
 }
 
@@ -404,5 +412,20 @@ mod tests {
         let b = CStrBox::try_from("123abc").unwrap();
         let s: &CStrThin = b.borrow();
         assert_eq!(s.to_bytes(), b"123abc");
+    }
+
+    #[test]
+    fn hash() {
+        fn hash<T: Hash>(t: &T) -> u64 {
+            use std::hash::DefaultHasher;
+            let mut s = DefaultHasher::new();
+            t.hash(&mut s);
+            s.finish()
+        }
+
+        let s1 = CStrBox::try_from("foobar").unwrap();
+        let s2 = CStrThin::from_bytes_with_nul(b"foobar\0").unwrap();
+
+        assert_eq!(hash(&s1), hash(&s2));
     }
 }
