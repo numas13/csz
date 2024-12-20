@@ -1,6 +1,6 @@
 use core::{ffi::c_char, fmt, ops::Deref, ptr};
 
-use crate::{macros::const_assert_size_eq, utils::memchr, CStr, Cursor, NulError};
+use crate::{macros::const_assert_size_eq, utils::memchr, CStr, Cursor, CursorError, NulError};
 
 /// An owned C string with a fixed-size capacity.
 ///
@@ -126,6 +126,15 @@ impl<const N: usize> CStrArray<N> {
             Some(_) => Ok(unsafe { &mut *(bytes as *mut [u8; N] as *mut Self) }),
             None => Err(NulError(())),
         }
+    }
+
+    /// Creates a new fixed-size C string from a byte slice.
+    ///
+    /// See documentation for [Cursor::write_bytes].
+    pub fn from_bytes(bytes: &[u8]) -> Result<CStrArray<N>, CursorError> {
+        let mut s = Self::new();
+        s.cursor().write_bytes(bytes)?;
+        Ok(s)
     }
 
     /// Returns the mutable inner pointer to this C string.
