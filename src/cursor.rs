@@ -66,6 +66,24 @@ impl<'a> Cursor<'a> {
         self.buffer.len()
     }
 
+    /// Returns the current position of this cursor.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use csz::Cursor;
+    /// let mut bytes = [0; 64];
+    /// let mut cur = Cursor::new(&mut bytes, 0);
+    /// assert_eq!(cur.position(), 0);
+    /// cur.write_bytes(b"123");
+    /// assert_eq!(cur.position(), 3);
+    /// cur.write_bytes(b"123");
+    /// assert_eq!(cur.position(), 6);
+    /// ```
+    pub fn position(&self) -> usize {
+        self.offset
+    }
+
     /// Write a nul byte at the end this cursor.
     pub fn finish(self) {}
 
