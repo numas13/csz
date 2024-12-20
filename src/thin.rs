@@ -583,7 +583,7 @@ mod tests {
     #[test]
     fn display() {
         let s1 = format!("{}", cstr!("foo\x1b123"));
-        let s2 = format!("{}", "foo\x1b123");
+        let s2 = "foo\x1b123".to_string();
         assert_eq!(s1, s2);
     }
 

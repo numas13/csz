@@ -1,6 +1,6 @@
 use core::{
     borrow::Borrow,
-    ffi::c_char,
+    ffi::{c_char, CStr},
     fmt,
     hash::{Hash, Hasher},
     ops::Deref,
@@ -139,6 +139,19 @@ impl<const N: usize> CStrArray<N> {
 
     /// Creates a new fixed-size C string from a byte slice.
     ///
+    /// # Safety
+    ///
+    /// See documentation for [Cursor::write_bytes_unchecked].
+    pub unsafe fn from_bytes_unchecked(bytes: &[u8]) -> Result<CStrArray<N>, CursorError> {
+        let mut s = Self::new();
+        unsafe {
+            s.cursor().write_bytes_unchecked(bytes)?;
+        }
+        Ok(s)
+    }
+
+    /// Creates a new fixed-size C string from a byte slice.
+    ///
     /// See documentation for [Cursor::write_bytes].
     pub fn from_bytes(bytes: &[u8]) -> Result<CStrArray<N>, CursorError> {
         let mut s = Self::new();
@@ -270,6 +283,24 @@ impl<const N: usize> Deref for CStrArray<N> {
 
     fn deref(&self) -> &Self::Target {
         self.as_c_str()
+    }
+}
+
+impl<const N: usize> TryFrom<&CStrThin> for CStrArray<N> {
+    type Error = CursorError;
+
+    fn try_from(value: &CStrThin) -> Result<Self, Self::Error> {
+        let mut s = Self::new();
+        s.cursor().write_c_str(value)?;
+        Ok(s)
+    }
+}
+
+impl<const N: usize> TryFrom<&CStr> for CStrArray<N> {
+    type Error = CursorError;
+
+    fn try_from(value: &CStr) -> Result<Self, Self::Error> {
+        Self::try_from(<&CStrThin>::from(value))
     }
 }
 

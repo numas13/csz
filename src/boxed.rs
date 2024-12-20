@@ -402,9 +402,9 @@ mod tests {
         assert!(s1 == s2);
         assert!(s1 == *s3);
         assert!(s2 == s1);
-        assert!(!(s1 < s2));
-        assert!(!(s1 < *s3));
-        assert!(!(s2 < s1));
+        assert!(s1 >= s2);
+        assert!(s1 >= *s3);
+        assert!(s2 >= s1);
     }
 
     #[test]
