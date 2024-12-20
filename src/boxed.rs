@@ -1,12 +1,12 @@
 use core::{
     cmp::Ordering,
-    ffi::c_char,
+    ffi::{c_char, CStr},
     fmt, mem,
     ops::Deref,
     ptr::{self, NonNull},
 };
 
-use crate::{ffi, macros::const_assert_size_eq, utils::memchr, CStr, NulError};
+use crate::{ffi, macros::const_assert_size_eq, utils::memchr, CStrThin, NulError};
 
 /// An owned C string allocated using `malloc`.
 ///
@@ -162,8 +162,8 @@ impl CStrBox {
     /// let s = CStrBox::try_from("hello").unwrap();
     /// assert_eq!(s.as_c_str().to_bytes(), b"hello");
     /// ```
-    pub const fn as_c_str(&self) -> &CStr {
-        unsafe { CStr::from_ptr(self.ptr.as_ptr()) }
+    pub const fn as_c_str(&self) -> &CStrThin {
+        unsafe { CStrThin::from_ptr(self.ptr.as_ptr()) }
     }
 
     /// Allocate space and copy a byte slice to the end of this string.
@@ -214,7 +214,7 @@ impl CStrBox {
     /// Allocate space and copy a C string to the end of this string.
     ///
     /// See documentation for [CStrBox::push_bytes].
-    pub fn push_c_str(&mut self, s: &CStr) -> Result<(), NulError> {
+    pub fn push_c_str(&mut self, s: &CStrThin) -> Result<(), NulError> {
         self.push_bytes(s.to_bytes())
     }
 }
@@ -226,16 +226,22 @@ impl Default for CStrBox {
 }
 
 impl Deref for CStrBox {
-    type Target = CStr;
+    type Target = CStrThin;
 
     fn deref(&self) -> &Self::Target {
-        unsafe { CStr::from_ptr(self.ptr.as_ptr()) }
+        unsafe { CStrThin::from_ptr(self.ptr.as_ptr()) }
+    }
+}
+
+impl From<&CStrThin> for CStrBox {
+    fn from(value: &CStrThin) -> Self {
+        unsafe { Self::from_bytes_with_nul_unchecked(value.to_bytes_with_nul()) }
     }
 }
 
 impl From<&CStr> for CStrBox {
     fn from(value: &CStr) -> Self {
-        unsafe { Self::from_bytes_unchecked(value.to_bytes_with_nul()) }
+        unsafe { Self::from_bytes_with_nul_unchecked(value.to_bytes_with_nul()) }
     }
 }
 
@@ -278,15 +284,27 @@ impl PartialEq for CStrBox {
     }
 }
 
+impl PartialEq<CStrThin> for CStrBox {
+    fn eq(&self, other: &CStrThin) -> bool {
+        self.as_c_str().eq(other)
+    }
+}
+
+impl PartialEq<CStrBox> for CStrThin {
+    fn eq(&self, other: &CStrBox) -> bool {
+        self.eq(other.as_c_str())
+    }
+}
+
 impl PartialEq<CStr> for CStrBox {
     fn eq(&self, other: &CStr) -> bool {
-        self.as_c_str().eq(other)
+        self.as_c_str().eq(<&CStrThin>::from(other))
     }
 }
 
 impl PartialEq<CStrBox> for CStr {
     fn eq(&self, other: &CStrBox) -> bool {
-        self.eq(other.as_c_str())
+        <&CStrThin>::from(self).eq(other)
     }
 }
 
@@ -296,15 +314,27 @@ impl PartialOrd for CStrBox {
     }
 }
 
+impl PartialOrd<CStrThin> for CStrBox {
+    fn partial_cmp(&self, other: &CStrThin) -> Option<Ordering> {
+        Some(self.as_c_str().cmp(other))
+    }
+}
+
+impl PartialOrd<CStrBox> for CStrThin {
+    fn partial_cmp(&self, other: &CStrBox) -> Option<Ordering> {
+        Some(self.cmp(&other))
+    }
+}
+
 impl PartialOrd<CStr> for CStrBox {
     fn partial_cmp(&self, other: &CStr) -> Option<Ordering> {
-        Some(self.as_c_str().cmp(other))
+        Some(self.as_c_str().cmp(<&CStrThin>::from(other)))
     }
 }
 
 impl PartialOrd<CStrBox> for CStr {
     fn partial_cmp(&self, other: &CStrBox) -> Option<Ordering> {
-        Some(self.cmp(&other))
+        Some(<&CStrThin>::from(self).cmp(other.as_c_str()))
     }
 }
 
@@ -352,7 +382,7 @@ mod tests {
     fn cmp() {
         let s1 = CStrBox::try_from("foobar").unwrap();
         let s2 = CStrBox::try_from("foobar").unwrap();
-        let s3 = CStr::from_bytes_with_nul(b"foobar\0").unwrap();
+        let s3 = CStrThin::from_bytes_with_nul(b"foobar\0").unwrap();
 
         assert!(s1 == s2);
         assert!(s1 == *s3);

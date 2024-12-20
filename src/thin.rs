@@ -1,6 +1,6 @@
 use core::{
     cmp::Ordering,
-    ffi::c_char,
+    ffi::{c_char, CStr},
     fmt::{self, Write},
     marker::PhantomData,
     ptr, slice,
@@ -15,23 +15,23 @@ use crate::{ffi, macros::const_assert_size_eq, utils::memchr, NulError};
 ///
 /// # Examples
 ///
-/// Use [cstr](crate::cstr) macro to create a `CStr` from a string literal:
+/// Use [cstr](crate::cstr) macro to create a `CStrThin` from a string literal:
 ///
 /// ```
-/// use csz::{CStr, cstr};
+/// use csz::{CStrThin, cstr};
 ///
-/// let s1 = CStr::from_bytes_until_nul(b"hello\0").unwrap();
+/// let s1 = CStrThin::from_bytes_until_nul(b"hello\0").unwrap();
 /// let s2 = cstr!("hello");
 /// assert_eq!(s1, s2);
 /// ```
 ///
-/// `CStr` can be used to pass C strings to FFI:
+/// `CStrThin` can be used to pass C strings to FFI:
 ///
 /// ```no_run
-/// use csz::{CStr, cstr};
+/// use csz::{CStrThin, cstr};
 ///
 /// extern "C" {
-///     fn func_c(s: Option<&CStr>); // same as *const c_char
+///     fn func_c(s: Option<&CStrThin>); // same as *const c_char
 /// }
 ///
 /// unsafe {
@@ -39,12 +39,12 @@ use crate::{ffi, macros::const_assert_size_eq, utils::memchr, NulError};
 /// }
 /// ```
 ///
-/// `CStr` can be used to receive C strings from FFI:
+/// `CStrThin` can be used to receive C strings from FFI:
 ///
 /// ```no_run
-/// use csz::{CStr, cstr};
+/// use csz::{CStrThin, cstr};
 ///
-/// extern "C" fn func(s: Option<&CStr>) { // same as *const c_char
+/// extern "C" fn func(s: Option<&CStrThin>) { // same as *const c_char
 ///     match s {
 ///         Some(s) => println!("s is {s:?}"),
 ///         None => println!("s is null :("),
@@ -52,14 +52,14 @@ use crate::{ffi, macros::const_assert_size_eq, utils::memchr, NulError};
 /// }
 /// ```
 #[repr(transparent)]
-pub struct CStr(c_char);
+pub struct CStrThin(c_char);
 
 const_assert_size_eq!(c_char, u8);
-const_assert_size_eq!(*const c_char, &CStr);
-const_assert_size_eq!(*const c_char, Option<&CStr>);
+const_assert_size_eq!(*const c_char, &CStrThin);
+const_assert_size_eq!(*const c_char, Option<&CStrThin>);
 
-impl CStr {
-    /// Creates a `CStr` reference from a raw C string pointer.
+impl CStrThin {
+    /// Creates a `CStrThin` reference from a raw C string pointer.
     ///
     /// # Safety
     ///
@@ -69,17 +69,17 @@ impl CStr {
     ///
     /// ```no_run
     /// use core::ffi::c_char;
-    /// use csz::{CStr, cstr};
+    /// use csz::{CStrThin, cstr};
     ///
     /// extern "C" {
     ///     fn func_c() -> *const c_char;
     /// }
     ///
-    /// let s = unsafe { CStr::from_ptr(func_c()) };
+    /// let s = unsafe { CStrThin::from_ptr(func_c()) };
     /// assert_eq!(s.to_str().unwrap(), "hello");
     /// ```
-    pub const unsafe fn from_ptr<'a>(ptr: *const c_char) -> &'a CStr {
-        unsafe { &*(ptr as *const CStr) }
+    pub const unsafe fn from_ptr<'a>(ptr: *const c_char) -> &'a CStrThin {
+        unsafe { &*(ptr as *const CStrThin) }
     }
 
     /// Returns the inner pointer to this C string.
@@ -110,11 +110,11 @@ impl CStr {
     /// # Examples
     ///
     /// ```
-    /// # use csz::CStr;
-    /// let s = CStr::from_bytes_until_nul(b"\0").unwrap();
+    /// # use csz::CStrThin;
+    /// let s = CStrThin::from_bytes_until_nul(b"\0").unwrap();
     /// assert!(s.is_empty());
     ///
-    /// let s = CStr::from_bytes_until_nul(b"123\0").unwrap();
+    /// let s = CStrThin::from_bytes_until_nul(b"123\0").unwrap();
     /// assert!(!s.is_empty());
     /// ```
     pub fn is_empty(&self) -> bool {
@@ -126,9 +126,9 @@ impl CStr {
     /// # Examples
     ///
     /// ```
-    /// # use csz::CStr;
+    /// # use csz::CStrThin;
     /// let bytes = b"123456\0";
-    /// let s = CStr::from_bytes_until_nul(bytes).unwrap();
+    /// let s = CStrThin::from_bytes_until_nul(bytes).unwrap();
     /// assert_eq!(bytes.len(), 7);
     /// assert_eq!(s.count_bytes(), 6);
     /// ```
@@ -171,9 +171,9 @@ impl CStr {
     /// # Examples
     ///
     /// ```
-    /// # use csz::CStr;
+    /// # use csz::CStrThin;
     /// let bytes = b"123456\0";
-    /// let s = CStr::from_bytes_until_nul(bytes).unwrap();
+    /// let s = CStrThin::from_bytes_until_nul(bytes).unwrap();
     /// assert_eq!(s.to_bytes(), b"123456");
     /// ```
     pub fn to_bytes(&self) -> &[u8] {
@@ -187,16 +187,16 @@ impl CStr {
     /// # Examples
     ///
     /// ```
-    /// # use csz::CStr;
+    /// # use csz::CStrThin;
     /// let bytes = b"123456\0";
-    /// let s = CStr::from_bytes_until_nul(bytes).unwrap();
+    /// let s = CStrThin::from_bytes_until_nul(bytes).unwrap();
     /// assert_eq!(s.to_bytes_with_nul(), b"123456\0");
     /// ```
     pub fn to_bytes_with_nul(&self) -> &[u8] {
         unsafe { slice::from_raw_parts(self.as_ptr().cast(), self.count_bytes() + 1) }
     }
 
-    /// Unsafely creates a `CStr` reference from a byte slice.
+    /// Unsafely creates a `CStrThin` reference from a byte slice.
     ///
     /// # Safety
     ///
@@ -205,12 +205,12 @@ impl CStr {
     /// # Examples
     ///
     /// ```
-    /// # use csz::CStr;
+    /// # use csz::CStrThin;
     /// let bytes = b"foo\0bar\0";
-    /// let s = unsafe { CStr::from_bytes_until_nul_unchecked(bytes) };
+    /// let s = unsafe { CStrThin::from_bytes_until_nul_unchecked(bytes) };
     /// assert_eq!(s.to_bytes(), b"foo");
     /// ```
-    pub const unsafe fn from_bytes_until_nul_unchecked(bytes: &[u8]) -> &CStr {
+    pub const unsafe fn from_bytes_until_nul_unchecked(bytes: &[u8]) -> &CStrThin {
         unsafe { Self::from_ptr(bytes.as_ptr().cast()) }
     }
 
@@ -219,20 +219,20 @@ impl CStr {
     /// # Examples
     ///
     /// ```
-    /// # use csz::CStr;
+    /// # use csz::CStrThin;
     /// let bytes = b"hello\0 world\0";
-    /// let s = CStr::from_bytes_until_nul(bytes).unwrap();
+    /// let s = CStrThin::from_bytes_until_nul(bytes).unwrap();
     /// assert_eq!(s.to_bytes(), b"hello");
     /// ```
     ///
-    /// Creating a `CStr` without a trailing nul terminator is an error:
+    /// Creating a `CStrThin` without a trailing nul terminator is an error:
     ///
     /// ```
-    /// # use csz::CStr;
+    /// # use csz::CStrThin;
     /// let bytes = b"hello world";
-    /// assert!(CStr::from_bytes_until_nul(bytes).is_err());
+    /// assert!(CStrThin::from_bytes_until_nul(bytes).is_err());
     /// ```
-    pub fn from_bytes_until_nul(bytes: &[u8]) -> Result<&CStr, NulError> {
+    pub fn from_bytes_until_nul(bytes: &[u8]) -> Result<&CStrThin, NulError> {
         memchr(0, bytes)
             .map(|_| unsafe { Self::from_bytes_until_nul_unchecked(bytes) })
             .ok_or(NulError(()))
@@ -243,28 +243,28 @@ impl CStr {
     /// # Examples
     ///
     /// ```
-    /// # use csz::CStr;
+    /// # use csz::CStrThin;
     /// let bytes = b"hello world\0";
-    /// let s = CStr::from_bytes_with_nul(bytes).unwrap();
+    /// let s = CStrThin::from_bytes_with_nul(bytes).unwrap();
     /// assert_eq!(s.to_bytes(), b"hello world");
     /// ```
     ///
-    /// Creating a `CStr` without a trailing nul terminator is an error:
+    /// Creating a `CStrThin` without a trailing nul terminator is an error:
     ///
     /// ```
-    /// # use csz::CStr;
+    /// # use csz::CStrThin;
     /// let bytes = b"hello world";
-    /// assert!(CStr::from_bytes_with_nul(bytes).is_err());
+    /// assert!(CStrThin::from_bytes_with_nul(bytes).is_err());
     /// ```
     ///
-    /// Creating a `CStr` with an interior nul byte is an error:
+    /// Creating a `CStrThin` with an interior nul byte is an error:
     ///
     /// ```
-    /// # use csz::CStr;
+    /// # use csz::CStrThin;
     /// let bytes = b"hello\0 world\0";
-    /// assert!(CStr::from_bytes_with_nul(bytes).is_err());
+    /// assert!(CStrThin::from_bytes_with_nul(bytes).is_err());
     /// ```
-    pub fn from_bytes_with_nul(bytes: &[u8]) -> Result<&CStr, NulError> {
+    pub fn from_bytes_with_nul(bytes: &[u8]) -> Result<&CStrThin, NulError> {
         match memchr(b'\0', bytes) {
             Some(index) if index + 1 == bytes.len() => {
                 Ok(unsafe { Self::from_bytes_until_nul_unchecked(bytes) })
@@ -273,7 +273,7 @@ impl CStr {
         }
     }
 
-    /// Yields a <code>&[str]</code> slice if the `CStr` contains valid UTF-8.
+    /// Yields a <code>&[str]</code> slice if the `CStrThin` contains valid UTF-8.
     ///
     /// # Examples
     ///
@@ -400,27 +400,27 @@ impl CStr {
     }
 }
 
-impl Default for &CStr {
+impl Default for &CStrThin {
     fn default() -> Self {
-        unsafe { CStr::from_ptr(b"\0".as_ptr().cast()) }
+        unsafe { CStrThin::from_ptr(b"\0".as_ptr().cast()) }
     }
 }
 
-impl PartialEq for CStr {
+impl PartialEq for CStrThin {
     fn eq(&self, other: &Self) -> bool {
         self.cmp(other).is_eq()
     }
 }
 
-impl Eq for CStr {}
+impl Eq for CStrThin {}
 
-impl PartialOrd for CStr {
+impl PartialOrd for CStrThin {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         Some(self.cmp(other))
     }
 }
 
-impl Ord for CStr {
+impl Ord for CStrThin {
     fn cmp(&self, other: &Self) -> core::cmp::Ordering {
         match unsafe { ffi::strcmp(self.as_ptr(), other.as_ptr()) } {
             x if x > 0 => Ordering::Greater,
@@ -430,39 +430,39 @@ impl Ord for CStr {
     }
 }
 
-impl From<&core::ffi::CStr> for &CStr {
-    fn from(value: &core::ffi::CStr) -> Self {
+impl From<&CStr> for &CStrThin {
+    fn from(value: &CStr) -> Self {
+        unsafe { CStrThin::from_ptr(value.as_ptr()) }
+    }
+}
+
+impl From<&CStrThin> for &CStr {
+    fn from(value: &CStrThin) -> Self {
         unsafe { CStr::from_ptr(value.as_ptr()) }
     }
 }
 
-impl From<&CStr> for &core::ffi::CStr {
-    fn from(value: &CStr) -> Self {
-        unsafe { core::ffi::CStr::from_ptr(value.as_ptr()) }
-    }
-}
-
 #[cfg(feature = "alloc")]
-impl From<&CString> for &CStr {
+impl From<&CString> for &CStrThin {
     fn from(value: &CString) -> Self {
-        unsafe { CStr::from_ptr(value.as_ptr()) }
+        unsafe { CStrThin::from_ptr(value.as_ptr()) }
     }
 }
 
 #[cfg(feature = "alloc")]
-impl From<&'_ CStr> for CString {
-    fn from(value: &CStr) -> Self {
+impl From<&'_ CStrThin> for CString {
+    fn from(value: &CStrThin) -> Self {
         unsafe { CString::from_vec_unchecked(value.to_bytes_with_nul().to_vec()) }
     }
 }
 
-impl AsRef<[u8]> for &CStr {
+impl AsRef<[u8]> for &CStrThin {
     fn as_ref(&self) -> &[u8] {
         self.to_bytes()
     }
 }
 
-impl fmt::Display for CStr {
+impl fmt::Display for CStrThin {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         for byte in self.bytes() {
             char::from(byte).fmt(fmt)?;
@@ -471,7 +471,7 @@ impl fmt::Display for CStr {
     }
 }
 
-impl fmt::Debug for CStr {
+impl fmt::Debug for CStrThin {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         fmt.write_char('"')?;
         for byte in self.bytes() {
@@ -481,17 +481,17 @@ impl fmt::Debug for CStr {
     }
 }
 
-/// An iterator over the bytes of a [CStr], without the nul terminator.
+/// An iterator over the bytes of a [CStrThin], without the nul terminator.
 ///
-/// This struct is created by the [bytes](CStr::bytes) method on [CStr].
+/// This struct is created by the [bytes](CStrThin::bytes) method on [CStrThin].
 /// See its documentation for more.
 pub struct Bytes<'a> {
     ptr: *const c_char,
-    phantom: PhantomData<&'a CStr>,
+    phantom: PhantomData<&'a CStrThin>,
 }
 
 impl Bytes<'_> {
-    const fn new(s: &CStr) -> Self {
+    const fn new(s: &CStrThin) -> Self {
         Self {
             ptr: s.as_ptr(),
             phantom: PhantomData,
@@ -513,17 +513,17 @@ impl Iterator for Bytes<'_> {
     }
 }
 
-/// An iterator over the bytes of a [CStr], with the nul terminator.
+/// An iterator over the bytes of a [CStrThin], with the nul terminator.
 ///
-/// This struct is created by the [bytes_with_nul](CStr::bytes_with_nul) method on [CStr].
+/// This struct is created by the [bytes_with_nul](CStrThin::bytes_with_nul) method on [CStrThin].
 /// See its documentation for more.
 pub struct BytesWithNul<'a> {
     ptr: *const c_char,
-    phantom: PhantomData<&'a CStr>,
+    phantom: PhantomData<&'a CStrThin>,
 }
 
 impl BytesWithNul<'_> {
-    const fn new(s: &CStr) -> Self {
+    const fn new(s: &CStrThin) -> Self {
         Self {
             ptr: s.as_ptr(),
             phantom: PhantomData,
@@ -559,7 +559,7 @@ mod tests {
 
     #[test]
     fn to_bytes() {
-        let s = unsafe { CStr::from_bytes_until_nul_unchecked(b"123abc\0") };
+        let s = unsafe { CStrThin::from_bytes_until_nul_unchecked(b"123abc\0") };
         assert_eq!(s.to_bytes(), b"123abc");
         assert_eq!(s.to_bytes_with_nul(), b"123abc\0");
     }

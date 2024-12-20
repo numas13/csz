@@ -1,6 +1,6 @@
 use core::{ffi::c_char, fmt, ops::Deref, ptr};
 
-use crate::{macros::const_assert_size_eq, utils::memchr, CStr, Cursor, CursorError, NulError};
+use crate::{macros::const_assert_size_eq, utils::memchr, CStrThin, Cursor, CursorError, NulError};
 
 /// An owned C string with a fixed-size capacity.
 ///
@@ -155,13 +155,13 @@ impl<const N: usize> CStrArray<N> {
     /// let mut s = CStrArray::<32>::try_from("hello").unwrap();
     /// assert_eq!(s.as_c_str(), cstr!("hello"));
     /// ```
-    pub const fn as_c_str(&self) -> &CStr {
+    pub const fn as_c_str(&self) -> &CStrThin {
         let ptr = if N > 0 {
             self.bytes.as_ptr()
         } else {
             [0].as_ptr()
         };
-        unsafe { CStr::from_ptr(ptr) }
+        unsafe { CStrThin::from_ptr(ptr) }
     }
 
     /// Returns the inner array as a mutable reference.
@@ -257,7 +257,7 @@ impl<const N: usize> Default for CStrArray<N> {
 }
 
 impl<const N: usize> Deref for CStrArray<N> {
-    type Target = CStr;
+    type Target = CStrThin;
 
     fn deref(&self) -> &Self::Target {
         self.as_c_str()

@@ -1,6 +1,6 @@
 use core::{fmt, ptr};
 
-use crate::{utils::memchr, CStr};
+use crate::{utils::memchr, CStrThin};
 
 /// An error indicating problems with a write into a cursor.
 ///
@@ -204,7 +204,7 @@ impl<'a> Cursor<'a> {
     /// cur.finish();
     /// assert_eq!(bytes, *b"hello\0xx");
     /// ```
-    pub fn write_c_str(&mut self, s: &CStr) -> Result<(), CursorError> {
+    pub fn write_c_str(&mut self, s: &CStrThin) -> Result<(), CursorError> {
         unsafe { self.write_bytes_unchecked(s.to_bytes()) }
     }
 

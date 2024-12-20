@@ -25,21 +25,21 @@ macro_rules! const_assert_size_eq {
 }
 pub(super) use const_assert_size_eq;
 
-/// Creates a [CStr](crate::CStr) from a string literal.
+/// Creates a [CStrThin](crate::CStrThin) from a string literal.
 ///
 /// # Examples
 ///
 /// ```
-/// use csz::{CStr, cstr};
+/// use csz::{CStrThin, cstr};
 ///
-/// let s1 = CStr::from_bytes_until_nul(b"hello\0").unwrap();
+/// let s1 = CStrThin::from_bytes_until_nul(b"hello\0").unwrap();
 /// let s2 = cstr!("hello");
 /// assert_eq!(s1, s2);
 /// ```
 #[macro_export]
 macro_rules! cstr {
     ($s:literal) => {
-        unsafe { $crate::CStr::from_bytes_until_nul_unchecked(concat!($s, "\0").as_bytes()) }
+        unsafe { $crate::CStrThin::from_bytes_until_nul_unchecked(concat!($s, "\0").as_bytes()) }
     };
 }
 
@@ -47,11 +47,11 @@ macro_rules! cstr {
 mod tests {
     use super::*;
 
-    use crate::CStr;
+    use crate::CStrThin;
 
     const_assert!(true);
     const_assert_eq!(1, 1);
     const_assert_size_eq!(u8, u8);
 
-    const _: &CStr = cstr!("abcd");
+    const _: &CStrThin = cstr!("abcd");
 }
