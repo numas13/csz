@@ -1,5 +1,6 @@
 use core::{
     borrow::Borrow,
+    cmp::Ordering,
     ffi::{c_char, CStr},
     fmt,
     hash::{Hash, Hasher},
@@ -319,6 +320,50 @@ impl<const N: usize> TryFrom<&str> for CStrArray<N> {
 impl<const N: usize> From<&'_ CStrArray<N>> for CStrBox {
     fn from(value: &CStrArray<N>) -> Self {
         CStrBox::from(value.as_c_str())
+    }
+}
+
+impl<const N: usize> Eq for CStrArray<N> {}
+
+impl<const N: usize> PartialEq for CStrArray<N> {
+    fn eq(&self, other: &Self) -> bool {
+        self.as_c_str().eq(other.as_c_str())
+    }
+}
+
+impl<const N: usize> PartialEq<CStrThin> for CStrArray<N> {
+    fn eq(&self, other: &CStrThin) -> bool {
+        self.as_c_str().eq(other)
+    }
+}
+
+impl<const N: usize> PartialEq<CStr> for CStrArray<N> {
+    fn eq(&self, other: &CStr) -> bool {
+        self.as_c_str().eq(<&CStrThin>::from(other))
+    }
+}
+
+impl<const N: usize> PartialOrd for CStrArray<N> {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.as_c_str().cmp(other.as_c_str()))
+    }
+}
+
+impl<const N: usize> PartialOrd<CStrThin> for CStrArray<N> {
+    fn partial_cmp(&self, other: &CStrThin) -> Option<Ordering> {
+        Some(self.as_c_str().cmp(other))
+    }
+}
+
+impl<const N: usize> PartialOrd<CStr> for CStrArray<N> {
+    fn partial_cmp(&self, other: &CStr) -> Option<Ordering> {
+        Some(self.as_c_str().cmp(<&CStrThin>::from(other)))
+    }
+}
+
+impl<const N: usize> Ord for CStrArray<N> {
+    fn cmp(&self, other: &Self) -> core::cmp::Ordering {
+        self.as_c_str().cmp(other)
     }
 }
 

@@ -413,11 +413,63 @@ impl PartialEq for CStrThin {
     }
 }
 
+impl PartialEq<CStr> for CStrThin {
+    fn eq(&self, other: &CStr) -> bool {
+        self.cmp(other.into()).is_eq()
+    }
+}
+
+impl PartialEq<CStrThin> for CStr {
+    fn eq(&self, other: &CStrThin) -> bool {
+        <&CStrThin>::from(self).cmp(other).is_eq()
+    }
+}
+
+#[cfg(feature = "alloc")]
+impl PartialEq<CString> for CStrThin {
+    fn eq(&self, other: &CString) -> bool {
+        self.cmp(other.into()).is_eq()
+    }
+}
+
+#[cfg(feature = "alloc")]
+impl PartialEq<CStrThin> for CString {
+    fn eq(&self, other: &CStrThin) -> bool {
+        <&CStrThin>::from(self).cmp(other).is_eq()
+    }
+}
+
 impl Eq for CStrThin {}
 
 impl PartialOrd for CStrThin {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         Some(self.cmp(other))
+    }
+}
+
+impl PartialOrd<CStr> for CStrThin {
+    fn partial_cmp(&self, other: &CStr) -> Option<Ordering> {
+        Some(self.cmp(other.into()))
+    }
+}
+
+impl PartialOrd<CStrThin> for CStr {
+    fn partial_cmp(&self, other: &CStrThin) -> Option<Ordering> {
+        Some(<&CStrThin>::from(self).cmp(other))
+    }
+}
+
+#[cfg(feature = "alloc")]
+impl PartialOrd<CString> for CStrThin {
+    fn partial_cmp(&self, other: &CString) -> Option<Ordering> {
+        Some(self.cmp(other.into()))
+    }
+}
+
+#[cfg(feature = "alloc")]
+impl PartialOrd<CStrThin> for CString {
+    fn partial_cmp(&self, other: &CStrThin) -> Option<Ordering> {
+        Some(<&CStrThin>::from(self).cmp(other))
     }
 }
 
