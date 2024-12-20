@@ -1,6 +1,8 @@
-use core::{ffi::c_char, fmt, ops::Deref, ptr};
+use core::{borrow::Borrow, ffi::c_char, fmt, ops::Deref, ptr};
 
-use crate::{macros::const_assert_size_eq, utils::memchr, CStrThin, Cursor, CursorError, NulError};
+use crate::{
+    macros::const_assert_size_eq, utils::memchr, CStrBox, CStrThin, Cursor, CursorError, NulError,
+};
 
 /// An owned C string with a fixed-size capacity.
 ///
@@ -276,6 +278,12 @@ impl<const N: usize> TryFrom<&str> for CStrArray<N> {
     }
 }
 
+impl<const N: usize> From<&'_ CStrArray<N>> for CStrBox {
+    fn from(value: &CStrArray<N>) -> Self {
+        CStrBox::from(value.as_c_str())
+    }
+}
+
 impl<const N: usize> fmt::Display for CStrArray<N> {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         fmt::Display::fmt(self.as_c_str(), fmt)
@@ -285,6 +293,12 @@ impl<const N: usize> fmt::Display for CStrArray<N> {
 impl<const N: usize> fmt::Debug for CStrArray<N> {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         fmt::Debug::fmt(self.as_c_str(), fmt)
+    }
+}
+
+impl<const N: usize> Borrow<CStrThin> for CStrArray<N> {
+    fn borrow(&self) -> &CStrThin {
+        self.as_c_str()
     }
 }
 
@@ -301,5 +315,12 @@ mod tests {
         assert_eq!(s.to_bytes(), b"");
         assert_eq!(s.to_bytes_with_nul(), b"\0");
         assert!(s.append().write_bytes(b"1").is_err());
+    }
+
+    #[test]
+    fn borrow() {
+        let a = CStrArray::<64>::try_from("test").unwrap();
+        let s: &CStrThin = a.borrow();
+        assert_eq!(s.to_bytes(), b"test");
     }
 }

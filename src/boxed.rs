@@ -1,4 +1,5 @@
 use core::{
+    borrow::Borrow,
     cmp::Ordering,
     ffi::{c_char, CStr},
     fmt, mem,
@@ -344,6 +345,12 @@ impl Ord for CStrBox {
     }
 }
 
+impl Borrow<CStrThin> for CStrBox {
+    fn borrow(&self) -> &CStrThin {
+        self.as_c_str()
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -390,5 +397,12 @@ mod tests {
         assert!(!(s1 < s2));
         assert!(!(s1 < *s3));
         assert!(!(s2 < s1));
+    }
+
+    #[test]
+    fn borrow() {
+        let b = CStrBox::try_from("123abc").unwrap();
+        let s: &CStrThin = b.borrow();
+        assert_eq!(s.to_bytes(), b"123abc");
     }
 }

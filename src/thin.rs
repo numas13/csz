@@ -481,6 +481,15 @@ impl fmt::Debug for CStrThin {
     }
 }
 
+#[cfg(feature = "alloc")]
+impl alloc::borrow::ToOwned for CStrThin {
+    type Owned = crate::CStrBox;
+
+    fn to_owned(&self) -> Self::Owned {
+        self.into()
+    }
+}
+
 /// An iterator over the bytes of a [CStrThin], without the nul terminator.
 ///
 /// This struct is created by the [bytes](CStrThin::bytes) method on [CStrThin].
@@ -576,5 +585,11 @@ mod tests {
         let s1 = format!("{:?}", cstr!("foo\x1b123"));
         let s2 = format!("{:?}", "foo\x1b123");
         assert_eq!(s1, s2);
+    }
+
+    #[test]
+    fn to_owned() {
+        let s = cstr!("hello");
+        let _: crate::CStrBox = s.to_owned();
     }
 }
