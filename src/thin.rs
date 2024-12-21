@@ -288,17 +288,19 @@ impl CStrThin {
         core::str::from_utf8(self.to_bytes())
     }
 
-    // fn cmp_ignore_case_impl(&self, other: &Self) -> Ordering {
-    //     let a = self.bytes_with_nul().map(|c| c.to_ascii_lowercase());
-    //     let b = other.bytes_with_nul().map(|c| c.to_ascii_lowercase());
-    //     core::iter::zip(a, b)
-    //         .find_map(|(a, b)| match a.cmp(&b) {
-    //             Ordering::Equal => None,
-    //             x => Some(x),
-    //         })
-    //         .unwrap_or(Ordering::Equal)
-    // }
+    #[cfg(not(has_strcasecmp))]
+    fn cmp_ignore_case_impl(&self, other: &Self) -> Ordering {
+        let a = self.bytes_with_nul().map(|c| c.to_ascii_lowercase());
+        let b = other.bytes_with_nul().map(|c| c.to_ascii_lowercase());
+        core::iter::zip(a, b)
+            .find_map(|(a, b)| match a.cmp(&b) {
+                Ordering::Equal => None,
+                x => Some(x),
+            })
+            .unwrap_or(Ordering::Equal)
+    }
 
+    #[cfg(has_strcasecmp)]
     fn cmp_ignore_case_impl(&self, other: &Self) -> Ordering {
         match unsafe { ffi::strcasecmp(self.as_ptr(), other.as_ptr()) } {
             x if x > 0 => Ordering::Greater,

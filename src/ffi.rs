@@ -7,19 +7,24 @@ mod imp {
 
     extern "C" {
         pub fn strlen(c: *const c_char) -> size_t;
-        pub fn strcasecmp(s1: *const c_char, s2: *const c_char) -> c_int;
         pub fn strstr(s: *const c_char, n: *const c_char) -> *mut c_char;
         pub fn strcmp(s1: *const c_char, s2: *const c_char) -> c_int;
         pub fn memchr(s: *const c_void, c: c_int, n: size_t) -> *mut c_void;
         pub fn malloc(size: size_t) -> *mut c_void;
         pub fn free(ptr: *mut c_void);
         pub fn realloc(ptr: *mut c_void, size: size_t) -> *mut c_void;
+
+        #[cfg(has_strcasecmp)]
+        pub fn strcasecmp(s1: *const c_char, s2: *const c_char) -> c_int;
     }
 }
 
 #[cfg(feature = "libc")]
 mod imp {
-    pub use libc::{free, malloc, memchr, realloc, strcasecmp, strcmp, strlen, strstr};
+    pub use libc::{free, malloc, memchr, realloc, strcmp, strlen, strstr};
+
+    #[cfg(has_strcasecmp)]
+    pub use libc::strcasecmp;
 }
 
 pub use imp::*;
