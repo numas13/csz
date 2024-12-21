@@ -13,18 +13,13 @@ mod imp {
         pub fn malloc(size: size_t) -> *mut c_void;
         pub fn free(ptr: *mut c_void);
         pub fn realloc(ptr: *mut c_void, size: size_t) -> *mut c_void;
-
-        #[cfg(has_strcasecmp)]
         pub fn strcasecmp(s1: *const c_char, s2: *const c_char) -> c_int;
     }
 }
 
 #[cfg(feature = "libc")]
 mod imp {
-    pub use libc::{free, malloc, memchr, realloc, strcmp, strlen, strstr};
-
-    #[cfg(has_strcasecmp)]
-    pub use libc::strcasecmp;
+    pub use libc::{free, malloc, memchr, realloc, strcmp, strlen, strstr, strcasecmp};
 }
 
 pub use imp::*;

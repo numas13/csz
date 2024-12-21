@@ -1,7 +1,6 @@
 //! Safer wrappers for nul-terminated C strings.
 
 #![cfg_attr(not(test), no_std)]
-#![cfg_attr(all(doc, has_doc_auto_cfg), feature(doc_auto_cfg))]
 #![deny(unsafe_op_in_unsafe_fn)]
 
 #[cfg(feature = "alloc")]
