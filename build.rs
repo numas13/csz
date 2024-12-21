@@ -5,7 +5,7 @@ struct Check<'a> {
     emit: Option<&'a str>,
 }
 
-impl<'a> Check<'a> {
+impl Check<'_> {
     fn lib() -> Self {
         Self {
             crate_type: "lib",

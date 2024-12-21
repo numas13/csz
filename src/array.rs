@@ -4,6 +4,7 @@ use core::{
     ffi::{c_char, CStr},
     fmt,
     hash::{Hash, Hasher},
+    mem::MaybeUninit,
     ops::Deref,
     ptr,
 };
@@ -45,8 +46,14 @@ impl<const N: usize> CStrArray<N> {
     /// # use csz::CStrArray;
     /// let s = CStrArray::<64>::new();
     /// ```
-    pub const fn new() -> CStrArray<N> {
-        Self { bytes: [0; N] }
+    pub fn new() -> CStrArray<N> {
+        let mut bytes = MaybeUninit::<Self>::uninit();
+        if N > 0 {
+            unsafe {
+                (*bytes.as_mut_ptr()).bytes[0] = 0;
+            }
+        }
+        unsafe { bytes.assume_init() }
     }
 
     /// Truncates this C string, removing all contents.
