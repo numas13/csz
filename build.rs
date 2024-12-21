@@ -27,6 +27,9 @@ impl<'a> Check<'a> {
 
         let rustc = env::var("RUSTC").unwrap();
         let mut cmd = Command::new(rustc);
+        if let Ok(target) = env::var("TARGET") {
+            cmd.arg("--target").arg(target);
+        }
         cmd.arg("--crate-type").arg(self.crate_type);
         if let Some(emit) = self.emit {
             cmd.arg("--emit").arg(emit);
