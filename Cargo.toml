@@ -11,6 +11,9 @@ repository = "https://github.com/numas13/csz"
 keywords = ["cstr", "cstring", "ffi", "no_std"]
 categories = ["data-structures", "development-tools::ffi", "no-std", "no-std::no-alloc"]
 
+[package.metadata.docs.rs]
+all-features = true
+
 [features]
 default = []
 alloc = []
