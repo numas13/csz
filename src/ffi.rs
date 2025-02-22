@@ -19,7 +19,7 @@ mod imp {
 
 #[cfg(feature = "libc")]
 mod imp {
-    pub use libc::{free, malloc, memchr, realloc, strcmp, strlen, strstr, strcasecmp};
+    pub use libc::{free, malloc, memchr, realloc, strcasecmp, strcmp, strlen, strstr};
 }
 
 pub use imp::*;
