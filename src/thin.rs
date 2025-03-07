@@ -151,6 +151,70 @@ impl CStrThin {
         Bytes::new(self)
     }
 
+    /// Returns an iterator over the chars of this C string.
+    ///
+    /// Any invalid UTF-8 sequences are replaced with [`U+FFFD REPLACEMENT CHARACTER`][U+FFFD].
+    ///
+    /// It’s important to remember that char represents a Unicode Scalar Value,
+    /// and might not match your idea of what a ‘character’ is. Iteration over
+    /// grapheme clusters may be what you actually want. This functionality is
+    /// not provided by this library, check crates.io instead.
+    ///
+    /// [U+FFFD]: core::char::REPLACEMENT_CHARACTER
+    ///
+    /// # Examples
+    ///
+    /// Basic usage:
+    ///
+    /// ```
+    /// use csz::cstr;
+    ///
+    /// let word = cstr!("cup");
+    /// assert_eq!(3, word.chars().count());
+    ///
+    /// let mut chars = word.chars();
+    /// assert_eq!(chars.next(), Some('c'));
+    /// assert_eq!(chars.next(), Some('u'));
+    /// assert_eq!(chars.next(), Some('p'));
+    /// assert_eq!(chars.next(), None);
+    /// ```
+    ///
+    /// Invalid UTF-8 character:
+    ///
+    /// ```
+    /// # use csz::CStrThin;
+    ///
+    /// let word = CStrThin::from_bytes_with_nul(b"inva\x83lid\0").unwrap();
+    /// assert_eq!(8, word.chars().count());
+    ///
+    /// let mut chars = word.chars();
+    /// assert_eq!(chars.next(), Some('i'));
+    /// assert_eq!(chars.next(), Some('n'));
+    /// assert_eq!(chars.next(), Some('v'));
+    /// assert_eq!(chars.next(), Some('a'));
+    /// assert_eq!(chars.next(), Some(char::REPLACEMENT_CHARACTER));
+    /// assert_eq!(chars.next(), Some('l'));
+    /// assert_eq!(chars.next(), Some('i'));
+    /// assert_eq!(chars.next(), Some('d'));
+    /// assert_eq!(chars.next(), None);
+    /// ```
+    ///
+    /// Remember, [char](core::primitive::char) s might not match your
+    /// intuition about characters:
+    ///
+    /// ```
+    /// use csz::cstr;
+    ///
+    /// let y = cstr!("y̆");
+    /// let mut chars = y.chars();
+    /// assert_eq!(chars.next(), Some('y')); // not 'y̆'
+    /// assert_eq!(chars.next(), Some('\u{0306}'));
+    /// assert_eq!(chars.next(), None);
+    /// ```
+    pub fn chars(&self) -> Chars {
+        Chars::new(self)
+    }
+
     /// Iterates over the bytes in this C string, **with** the nul terminator.
     ///
     /// # Examples
@@ -272,6 +336,20 @@ impl CStrThin {
             }
             _ => Err(NulError(())),
         }
+    }
+
+    /// Casts this thin C string reference to a [CStr] slice.
+    ///
+    /// ```
+    /// use core::ffi::CStr;
+    /// use csz::CStrThin;
+    ///
+    /// let s0 = CStrThin::from_bytes_with_nul(b"banana\0").unwrap();
+    /// let s1: &CStr = s0.as_c_str();
+    /// assert_eq!(s1, c"banana");
+    /// ```
+    pub fn as_c_str(&self) -> &CStr {
+        unsafe { CStr::from_ptr(self.as_ptr()) }
     }
 
     /// Yields a <code>&[str]</code> slice if the `CStrThin` contains valid UTF-8.
@@ -515,8 +593,8 @@ impl AsRef<[u8]> for &CStrThin {
 
 impl fmt::Display for CStrThin {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
-        for byte in self.bytes() {
-            char::from(byte).fmt(fmt)?;
+        for i in self.chars() {
+            fmt.write_char(i)?;
         }
         Ok(())
     }
@@ -525,8 +603,8 @@ impl fmt::Display for CStrThin {
 impl fmt::Debug for CStrThin {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         fmt.write_char('"')?;
-        for byte in self.bytes() {
-            fmt::Display::fmt(&char::from(byte).escape_debug(), fmt)?;
+        for i in self.chars() {
+            fmt::Display::fmt(&i.escape_debug(), fmt)?;
         }
         fmt.write_char('"')
     }
@@ -617,6 +695,76 @@ impl Iterator for BytesWithNul<'_> {
     }
 }
 
+/// An iterator over the [char](core::primitive::char)s of a C string.
+///
+/// Any invalid UTF-8 sequences are replaced with [`U+FFFD REPLACEMENT CHARACTER`][U+FFFD].
+///
+/// This struct is created by the [chars](core::primitive::char) method on [CStrThin].
+/// See its documentation for more.
+///
+/// [U+FFFD]: core::char::REPLACEMENT_CHARACTER
+pub struct Chars<'a> {
+    bytes: Bytes<'a>,
+}
+
+impl<'a> Chars<'a> {
+    fn new(s: &'a CStrThin) -> Self {
+        Self { bytes: s.bytes() }
+    }
+
+    /// Views the underlying data as a subslice of the original data.
+    ///
+    /// This has the same lifetime as the original slice, and so the iterator
+    /// can continue to be used while this exists.
+    ///
+    /// ```
+    /// use csz::cstr;
+    ///
+    /// let mut chars = cstr!("abc").chars();
+    ///
+    /// assert_eq!(chars.as_thin(), c"abc");
+    /// chars.next();
+    /// assert_eq!(chars.as_thin(), c"bc");
+    /// chars.next();
+    /// chars.next();
+    /// assert_eq!(chars.as_thin(), c"");
+    /// ```
+    pub fn as_thin(&self) -> &'a CStrThin {
+        unsafe { CStrThin::from_ptr(self.bytes.ptr) }
+    }
+}
+
+impl Iterator for Chars<'_> {
+    type Item = char;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let mut byte = [0; 4];
+        byte[0] = self.bytes.next()?;
+        let (l, mask) = match byte[0] {
+            0x00..=0x7f => return Some(char::from(byte[0])),
+            0x80..=0xbf => return Some(char::REPLACEMENT_CHARACTER),
+            0xc0..=0xdf => (2, 0x1f),
+            0xe0..=0xef => (3, 0x0f),
+            0xf0..=0xf7 => (4, 0x07),
+            0xf8..=0xff => return Some(char::REPLACEMENT_CHARACTER),
+        };
+        for i in &mut byte[1..l] {
+            match self.bytes.next() {
+                Some(b) => *i = b,
+                None => return Some(char::REPLACEMENT_CHARACTER),
+            }
+        }
+        let mut raw = (byte[0] & mask) as u32;
+        for i in &byte[1..l] {
+            if *i & 0xc0 != 0x80 {
+                return Some(char::REPLACEMENT_CHARACTER);
+            }
+            raw = (raw << 6) | (*i & 0x3f) as u32;
+        }
+        Some(char::from_u32(raw).unwrap_or(char::REPLACEMENT_CHARACTER))
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -649,5 +797,60 @@ mod tests {
     fn to_owned() {
         let s = cstr!("hello");
         let _: crate::CStrBox = s.to_owned();
+    }
+
+    #[test]
+    fn chars() {
+        let s = cstr!("\u{40}\u{0440}\u{10040}");
+        let mut chars = s.chars();
+        assert_eq!(chars.next(), Some('@'));
+        assert_eq!(chars.next(), Some('р'));
+        assert_eq!(chars.next(), Some('𐁀'));
+        assert_eq!(chars.next(), None);
+    }
+
+    #[test]
+    fn chars_invalid() {
+        fn chars(slice: &[u8]) -> Chars {
+            CStrThin::from_bytes_with_nul(slice).unwrap().chars()
+        }
+
+        let mut it = chars(b"1\x802\xff3\0");
+        assert_eq!(it.next(), Some('1'));
+        assert_eq!(it.next(), Some(char::REPLACEMENT_CHARACTER));
+        assert_eq!(it.next(), Some('2'));
+        assert_eq!(it.next(), Some(char::REPLACEMENT_CHARACTER));
+        assert_eq!(it.next(), Some('3'));
+        assert_eq!(it.next(), None);
+
+        let mut it = chars(b"1\xc0\x402\0");
+        assert_eq!(it.next(), Some('1'));
+        assert_eq!(it.next(), Some(char::REPLACEMENT_CHARACTER));
+        assert_eq!(it.next(), Some('2'));
+        assert_eq!(it.next(), None);
+
+        let mut it = chars(b"1\xe0\x80\xff2\0");
+        assert_eq!(it.next(), Some('1'));
+        assert_eq!(it.next(), Some(char::REPLACEMENT_CHARACTER));
+        assert_eq!(it.next(), Some('2'));
+        assert_eq!(it.next(), None);
+
+        let mut it = chars(b"1\xe0\x10\x802\0");
+        assert_eq!(it.next(), Some('1'));
+        assert_eq!(it.next(), Some(char::REPLACEMENT_CHARACTER));
+        assert_eq!(it.next(), Some('2'));
+        assert_eq!(it.next(), None);
+
+        let mut it = chars(b"1\xf0\x80\x80\x7f2\0");
+        assert_eq!(it.next(), Some('1'));
+        assert_eq!(it.next(), Some(char::REPLACEMENT_CHARACTER));
+        assert_eq!(it.next(), Some('2'));
+        assert_eq!(it.next(), None);
+
+        let mut it = chars(b"1\xf0\x0f\x80\x802\0");
+        assert_eq!(it.next(), Some('1'));
+        assert_eq!(it.next(), Some(char::REPLACEMENT_CHARACTER));
+        assert_eq!(it.next(), Some('2'));
+        assert_eq!(it.next(), None);
     }
 }

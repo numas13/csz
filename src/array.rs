@@ -183,9 +183,9 @@ impl<const N: usize> CStrArray<N> {
     /// use csz::{CStrArray, cstr};
     ///
     /// let mut s = CStrArray::<32>::try_from("hello").unwrap();
-    /// assert_eq!(s.as_c_str(), cstr!("hello"));
+    /// assert_eq!(s.as_thin(), cstr!("hello"));
     /// ```
-    pub const fn as_c_str(&self) -> &CStrThin {
+    pub const fn as_thin(&self) -> &CStrThin {
         let ptr = if N > 0 {
             self.bytes.as_ptr()
         } else {
@@ -290,7 +290,7 @@ impl<const N: usize> Deref for CStrArray<N> {
     type Target = CStrThin;
 
     fn deref(&self) -> &Self::Target {
-        self.as_c_str()
+        self.as_thin()
     }
 }
 
@@ -326,7 +326,7 @@ impl<const N: usize> TryFrom<&str> for CStrArray<N> {
 
 impl<const N: usize> From<&'_ CStrArray<N>> for CStrBox {
     fn from(value: &CStrArray<N>) -> Self {
-        CStrBox::from(value.as_c_str())
+        CStrBox::from(value.as_thin())
     }
 }
 
@@ -334,61 +334,61 @@ impl<const N: usize> Eq for CStrArray<N> {}
 
 impl<const N: usize> PartialEq for CStrArray<N> {
     fn eq(&self, other: &Self) -> bool {
-        self.as_c_str().eq(other.as_c_str())
+        self.as_thin().eq(other.as_thin())
     }
 }
 
 impl<const N: usize> PartialEq<CStrThin> for CStrArray<N> {
     fn eq(&self, other: &CStrThin) -> bool {
-        self.as_c_str().eq(other)
+        self.as_thin().eq(other)
     }
 }
 
 impl<const N: usize> PartialEq<CStr> for CStrArray<N> {
     fn eq(&self, other: &CStr) -> bool {
-        self.as_c_str().eq(<&CStrThin>::from(other))
+        self.as_thin().eq(<&CStrThin>::from(other))
     }
 }
 
 impl<const N: usize> PartialOrd for CStrArray<N> {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        Some(self.as_c_str().cmp(other.as_c_str()))
+        Some(self.as_thin().cmp(other.as_thin()))
     }
 }
 
 impl<const N: usize> PartialOrd<CStrThin> for CStrArray<N> {
     fn partial_cmp(&self, other: &CStrThin) -> Option<Ordering> {
-        Some(self.as_c_str().cmp(other))
+        Some(self.as_thin().cmp(other))
     }
 }
 
 impl<const N: usize> PartialOrd<CStr> for CStrArray<N> {
     fn partial_cmp(&self, other: &CStr) -> Option<Ordering> {
-        Some(self.as_c_str().cmp(<&CStrThin>::from(other)))
+        Some(self.as_thin().cmp(<&CStrThin>::from(other)))
     }
 }
 
 impl<const N: usize> Ord for CStrArray<N> {
     fn cmp(&self, other: &Self) -> core::cmp::Ordering {
-        self.as_c_str().cmp(other)
+        self.as_thin().cmp(other)
     }
 }
 
 impl<const N: usize> fmt::Display for CStrArray<N> {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
-        fmt::Display::fmt(self.as_c_str(), fmt)
+        fmt::Display::fmt(self.as_thin(), fmt)
     }
 }
 
 impl<const N: usize> fmt::Debug for CStrArray<N> {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
-        fmt::Debug::fmt(self.as_c_str(), fmt)
+        fmt::Debug::fmt(self.as_thin(), fmt)
     }
 }
 
 impl<const N: usize> Borrow<CStrThin> for CStrArray<N> {
     fn borrow(&self) -> &CStrThin {
-        self.as_c_str()
+        self.as_thin()
     }
 }
 
