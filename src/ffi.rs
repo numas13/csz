@@ -18,12 +18,9 @@ mod imp {
         pub fn strcasecmp(s1: *const c_char, s2: *const c_char) -> c_int;
 
         #[cfg(windows)]
-        pub fn stricmp(s1: *const c_char, s2: *const c_char) -> c_int;
-
+        #[link_name = "_stricmp"]
+        pub fn strcasecmp(s1: *const c_char, s2: *const c_char) -> c_int;
     }
-
-    #[cfg(windows)]
-    pub use stricmp as strcasecmp;
 }
 
 #[cfg(feature = "libc")]
