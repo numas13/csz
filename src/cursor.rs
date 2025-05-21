@@ -31,17 +31,12 @@ pub enum CursorError {
 pub struct Cursor<'a> {
     buffer: &'a mut [u8],
     offset: usize,
-    dirty: bool,
 }
 
 impl<'a> Cursor<'a> {
     /// Creates a new `Cursor`.
     pub fn new(buffer: &'a mut [u8], offset: usize) -> Cursor<'a> {
-        Self {
-            buffer,
-            offset,
-            dirty: false,
-        }
+        Self { buffer, offset }
     }
 
     /// Creates a new `Cursor` that will append to the end of C string.
@@ -116,7 +111,8 @@ impl<'a> Cursor<'a> {
                 ptr::copy_nonoverlapping(src, dst.add(self.offset), bytes.len());
             }
             self.offset += bytes.len();
-            self.dirty = true;
+            // write nul terminator
+            self.buffer[self.offset] = b'\0';
             Ok(())
         } else {
             Err(CursorError::OverflowError)
@@ -240,15 +236,6 @@ impl<'a> Cursor<'a> {
     /// ```
     pub fn write_str(&mut self, s: &str) -> Result<(), CursorError> {
         self.write_bytes(s.as_bytes())
-    }
-}
-
-impl Drop for Cursor<'_> {
-    fn drop(&mut self) {
-        if self.dirty {
-            // write nul terminator
-            self.buffer[self.offset] = 0;
-        }
     }
 }
 
