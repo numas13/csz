@@ -104,7 +104,7 @@ impl<'a> Cursor<'a> {
     /// assert!(bytes.starts_with(b"hello abc 123\0xxx"));
     /// ```
     pub unsafe fn write_bytes_unchecked(&mut self, bytes: &[u8]) -> Result<(), CursorError> {
-        if self.offset + bytes.len() + 1 < self.capacity() {
+        if self.offset + bytes.len() < self.capacity() {
             let src = bytes.as_ptr();
             let dst = self.buffer.as_mut_ptr().cast::<u8>();
             unsafe {
