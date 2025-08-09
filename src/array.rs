@@ -352,7 +352,7 @@ impl<const N: usize> PartialEq<CStr> for CStrArray<N> {
 
 impl<const N: usize> PartialOrd for CStrArray<N> {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        Some(self.as_thin().cmp(other.as_thin()))
+        Some(self.cmp(other))
     }
 }
 
