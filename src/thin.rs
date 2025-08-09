@@ -147,7 +147,7 @@ impl CStrThin {
     /// let bytes = cstr!("hello").bytes();
     /// assert!(bytes.eq(*b"hello"));
     /// ```
-    pub fn bytes(&self) -> Bytes {
+    pub fn bytes(&self) -> Bytes<'_> {
         Bytes::new(self)
     }
 
@@ -211,7 +211,7 @@ impl CStrThin {
     /// assert_eq!(chars.next(), Some('\u{0306}'));
     /// assert_eq!(chars.next(), None);
     /// ```
-    pub fn chars(&self) -> Chars {
+    pub fn chars(&self) -> Chars<'_> {
         Chars::new(self)
     }
 
@@ -225,7 +225,7 @@ impl CStrThin {
     /// let bytes = cstr!("hello").bytes_with_nul();
     /// assert!(bytes.eq(*b"hello\0"));
     /// ```
-    pub fn bytes_with_nul(&self) -> BytesWithNul {
+    pub fn bytes_with_nul(&self) -> BytesWithNul<'_> {
         BytesWithNul::new(self)
     }
 
@@ -811,7 +811,7 @@ mod tests {
 
     #[test]
     fn chars_invalid() {
-        fn chars(slice: &[u8]) -> Chars {
+        fn chars(slice: &[u8]) -> Chars<'_> {
             CStrThin::from_bytes_with_nul(slice).unwrap().chars()
         }
 

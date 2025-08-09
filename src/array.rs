@@ -259,7 +259,7 @@ impl<const N: usize> CStrArray<N> {
     /// s.cursor().write_bytes(b"banana").unwrap();
     /// assert_eq!(s.to_bytes(), b"banana");
     /// ```
-    pub fn cursor(&mut self) -> Cursor {
+    pub fn cursor(&mut self) -> Cursor<'_> {
         self.clear();
         Cursor::new(unsafe { self.inner_mut() }, 0)
     }
@@ -274,7 +274,7 @@ impl<const N: usize> CStrArray<N> {
     /// s.append().write_bytes(b"bar").unwrap();
     /// assert_eq!(s.to_bytes(), b"foobar");
     /// ```
-    pub fn append(&mut self) -> Cursor {
+    pub fn append(&mut self) -> Cursor<'_> {
         let offset = self.count_bytes();
         Cursor::new(unsafe { self.inner_mut() }, offset)
     }
