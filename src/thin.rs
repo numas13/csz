@@ -591,6 +591,25 @@ impl AsRef<[u8]> for &CStrThin {
     }
 }
 
+impl AsRef<CStrThin> for CStrThin {
+    fn as_ref(&self) -> &CStrThin {
+        self
+    }
+}
+
+impl AsRef<CStrThin> for CStr {
+    fn as_ref(&self) -> &CStrThin {
+        self.into()
+    }
+}
+
+#[cfg(feature = "alloc")]
+impl AsRef<CStrThin> for CString {
+    fn as_ref(&self) -> &CStrThin {
+        self.into()
+    }
+}
+
 impl fmt::Display for CStrThin {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         for i in self.chars() {

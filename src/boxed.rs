@@ -236,6 +236,12 @@ impl Deref for CStrBox {
     }
 }
 
+impl AsRef<CStrThin> for CStrBox {
+    fn as_ref(&self) -> &CStrThin {
+        self
+    }
+}
+
 impl From<&CStrThin> for CStrBox {
     fn from(value: &CStrThin) -> Self {
         unsafe { Self::from_bytes_with_nul_unchecked(value.to_bytes_with_nul()) }

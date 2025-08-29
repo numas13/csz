@@ -294,6 +294,12 @@ impl<const N: usize> Deref for CStrArray<N> {
     }
 }
 
+impl<const N: usize> AsRef<CStrThin> for CStrArray<N> {
+    fn as_ref(&self) -> &CStrThin {
+        self.as_thin()
+    }
+}
+
 impl<const N: usize> TryFrom<&CStrThin> for CStrArray<N> {
     type Error = CursorError;
 
