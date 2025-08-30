@@ -559,22 +559,22 @@ impl Ord for CStrThin {
     }
 }
 
-impl From<&CStr> for &CStrThin {
-    fn from(value: &CStr) -> Self {
+impl<'a> From<&'a CStr> for &'a CStrThin {
+    fn from(value: &'a CStr) -> Self {
         unsafe { CStrThin::from_ptr(value.as_ptr()) }
     }
 }
 
-impl From<&CStrThin> for &CStr {
-    fn from(value: &CStrThin) -> Self {
+impl<'a> From<&'a CStrThin> for &'a CStr {
+    fn from(value: &'a CStrThin) -> Self {
         unsafe { CStr::from_ptr(value.as_ptr()) }
     }
 }
 
 #[cfg(feature = "alloc")]
-impl From<&CString> for &CStrThin {
-    fn from(value: &CString) -> Self {
-        unsafe { CStrThin::from_ptr(value.as_ptr()) }
+impl<'a> From<&'a CString> for &'a CStrThin {
+    fn from(value: &'a CString) -> Self {
+        value.as_c_str().into()
     }
 }
 
