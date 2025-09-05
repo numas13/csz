@@ -356,7 +356,7 @@ impl CStrThin {
     ///
     /// let s0 = CStrThin::from_bytes_with_nul(b"banana\0").unwrap();
     /// let s1: &CStr = s0.as_c_str();
-    /// assert_eq!(s1, c"banana");
+    /// assert_eq!(s1.to_bytes(), b"banana");
     /// ```
     pub fn as_c_str(&self) -> &CStr {
         unsafe { CStr::from_ptr(self.as_ptr()) }
@@ -751,12 +751,12 @@ impl<'a> Chars<'a> {
     ///
     /// let mut chars = cstr!("abc").chars();
     ///
-    /// assert_eq!(chars.as_thin(), c"abc");
+    /// assert_eq!(chars.as_thin().to_bytes(), b"abc");
     /// chars.next();
-    /// assert_eq!(chars.as_thin(), c"bc");
+    /// assert_eq!(chars.as_thin().to_bytes(), b"bc");
     /// chars.next();
     /// chars.next();
-    /// assert_eq!(chars.as_thin(), c"");
+    /// assert_eq!(chars.as_thin().to_bytes(), b"");
     /// ```
     pub fn as_thin(&self) -> &'a CStrThin {
         unsafe { CStrThin::from_ptr(self.bytes.ptr) }

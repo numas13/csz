@@ -82,7 +82,7 @@ impl CStrSlice {
     /// # Safety
     ///
     /// See [CStrSlice::from_bytes_unchecked].
-    pub const unsafe fn from_bytes_unchecked_mut(bytes: &mut [u8]) -> &mut CStrSlice {
+    pub unsafe fn from_bytes_unchecked_mut(bytes: &mut [u8]) -> &mut CStrSlice {
         unsafe { mem::transmute(bytes) }
     }
 
@@ -321,7 +321,7 @@ impl CStrSlice {
     /// }
     /// assert_eq!(s.to_bytes(), b"inner buffer");
     /// ```
-    pub const unsafe fn inner_slice_mut(&mut self) -> &mut [u8] {
+    pub unsafe fn inner_slice_mut(&mut self) -> &mut [u8] {
         &mut self.bytes
     }
 }
