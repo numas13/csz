@@ -43,8 +43,10 @@ impl CStrBox {
     /// # Examples
     ///
     /// ```
-    /// # use csz::CStrBox;
+    /// use csz::CStrBox;
+    ///
     /// let s = CStrBox::new();
+    /// assert_eq!(s.to_bytes(), b"");
     /// ```
     pub fn new() -> CStrBox {
         unsafe {
@@ -65,7 +67,8 @@ impl CStrBox {
     /// # Examples
     ///
     /// ```
-    /// # use csz::CStrBox;
+    /// use csz::CStrBox;
+    ///
     /// extern "C" {
     ///     fn free(s: *mut u8);
     /// }
@@ -91,7 +94,8 @@ impl CStrBox {
     /// # Examples
     ///
     /// ```
-    /// # use csz::CStrBox;
+    /// use csz::CStrBox;
+    ///
     /// extern "C" {
     ///     fn malloc(size: usize) -> *mut u8;
     /// }
@@ -120,7 +124,8 @@ impl CStrBox {
     /// # Examples
     ///
     /// ```
-    /// # use csz::CStrBox;
+    /// use csz::CStrBox;
+    ///
     /// let s = unsafe { CStrBox::from_bytes_unchecked(b"foobar") };
     /// assert_eq!(s.to_bytes(), b"foobar");
     /// ```
@@ -143,7 +148,8 @@ impl CStrBox {
     /// # Examples
     ///
     /// ```
-    /// # use csz::CStrBox;
+    /// use csz::CStrBox;
+    ///
     /// let s = unsafe { CStrBox::from_bytes_with_nul_unchecked(b"foobar\0") };
     /// assert_eq!(s.to_bytes(), b"foobar");
     /// ```
@@ -161,7 +167,8 @@ impl CStrBox {
     /// # Examples
     ///
     /// ```
-    /// # use csz::CStrBox;
+    /// use csz::CStrBox;
+    ///
     /// let s = CStrBox::try_from("hello").unwrap();
     /// assert_eq!(s.as_c_str().to_bytes(), b"hello");
     /// ```
@@ -174,7 +181,8 @@ impl CStrBox {
     /// # Examples
     ///
     /// ```
-    /// # use csz::CStrBox;
+    /// use csz::CStrBox;
+    ///
     /// let mut s = CStrBox::new();
     /// s.push_bytes(b"foo");
     /// s.push_bytes(b"123");
@@ -184,7 +192,8 @@ impl CStrBox {
     /// Pushing a byte slice with nul bytes is an error:
     ///
     /// ```
-    /// # use csz::CStrBox;
+    /// use csz::CStrBox;
+    ///
     /// let mut s = CStrBox::new();
     /// assert!(s.push_bytes(b"hello\0world").is_err());
     /// ```

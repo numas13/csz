@@ -12,10 +12,11 @@ mod cursor;
 mod ext_cstr;
 mod ffi;
 mod macros;
+mod slice;
 mod thin;
 mod utils;
 
-pub use crate::{array::*, boxed::*, cursor::*, ext_cstr::*, thin::*};
+pub use crate::{array::*, boxed::*, cursor::*, ext_cstr::*, slice::*, thin::*};
 
 /// An error indicating that no nul byte was present or that a byte slice contains interior nul
 /// bytes.

@@ -5,12 +5,12 @@ use core::{
     fmt,
     hash::{Hash, Hasher},
     mem::MaybeUninit,
-    ops::Deref,
-    ptr,
+    ops::{Deref, DerefMut},
 };
 
 use crate::{
-    macros::const_assert_size_eq, utils::memchr, CStrBox, CStrThin, Cursor, CursorError, NulError,
+    macros::const_assert_size_eq, utils::memchr, CStrBox, CStrSlice, CStrThin, CursorError,
+    NulError,
 };
 
 /// An owned C string with a fixed-size capacity.
@@ -32,9 +32,10 @@ use crate::{
 #[derive(Copy, Clone)]
 #[repr(transparent)]
 pub struct CStrArray<const N: usize> {
-    bytes: [c_char; N],
+    bytes: [u8; N],
 }
 
+const_assert_size_eq!(c_char, u8);
 const_assert_size_eq!([c_char; 64], CStrArray<64>);
 
 impl<const N: usize> CStrArray<N> {
@@ -43,8 +44,10 @@ impl<const N: usize> CStrArray<N> {
     /// # Examples
     ///
     /// ```
-    /// # use csz::CStrArray;
+    /// use csz::CStrArray;
+    ///
     /// let s = CStrArray::<64>::new();
+    /// assert_eq!(s.to_bytes(), b"")
     /// ```
     pub fn new() -> CStrArray<N> {
         let mut bytes = MaybeUninit::<Self>::uninit();
@@ -56,43 +59,13 @@ impl<const N: usize> CStrArray<N> {
         unsafe { bytes.assume_init() }
     }
 
-    /// Truncates this C string, removing all contents.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// # use csz::CStrArray;
-    /// let mut s = CStrArray::<64>::new();
-    /// s.cursor().write_bytes(b"foo").unwrap();
-    /// assert_eq!(s.to_bytes(), b"foo");
-    /// s.clear();
-    /// assert!(s.is_empty());
-    /// ```
-    pub fn clear(&mut self) {
-        if N > 0 {
-            self.bytes[0] = 0;
-        }
-    }
-
-    /// Returns this string's capacity, in bytes.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// # use csz::CStrArray;
-    /// let s = CStrArray::<128>::new();
-    /// assert_eq!(s.capacity(), 128);
-    /// ```
-    pub const fn capacity(&self) -> usize {
-        N
-    }
-
     /// Creates a mutable reference to `CStrArray` from a byte array and clears it.
     ///
     /// # Examples
     ///
     /// ```
-    /// # use csz::CStrArray;
+    /// use csz::CStrArray;
+    ///
     /// let mut bytes = [0; 32];
     /// bytes[..4].copy_from_slice(b"abc\0");
     /// let s = CStrArray::new_in(&mut bytes);
@@ -115,7 +88,8 @@ impl<const N: usize> CStrArray<N> {
     /// # Examples
     ///
     /// ```
-    /// # use csz::CStrArray;
+    /// use csz::CStrArray;
+    ///
     /// let mut bytes = [0; 16];
     /// bytes[..4].copy_from_slice(b"abc\0");
     /// let s = unsafe { CStrArray::from_array_unchecked(&mut bytes) };
@@ -131,7 +105,8 @@ impl<const N: usize> CStrArray<N> {
     /// # Examples
     ///
     /// ```
-    /// # use csz::CStrArray;
+    /// use csz::CStrArray;
+    ///
     /// let mut bytes = [0; 128];
     /// bytes[..7].copy_from_slice(b"foobar\0");
     /// let s = CStrArray::from_array(&mut bytes).unwrap();
@@ -149,7 +124,7 @@ impl<const N: usize> CStrArray<N> {
     ///
     /// # Safety
     ///
-    /// See documentation for [Cursor::write_bytes_unchecked].
+    /// See documentation for [crate::Cursor::write_bytes_unchecked].
     pub unsafe fn from_bytes_unchecked(bytes: &[u8]) -> Result<CStrArray<N>, CursorError> {
         let mut s = Self::new();
         unsafe {
@@ -160,123 +135,21 @@ impl<const N: usize> CStrArray<N> {
 
     /// Creates a new fixed-size C string from a byte slice.
     ///
-    /// See documentation for [Cursor::write_bytes].
+    /// See documentation for [crate::Cursor::write_bytes].
     pub fn from_bytes(bytes: &[u8]) -> Result<CStrArray<N>, CursorError> {
         let mut s = Self::new();
         s.cursor().write_bytes(bytes)?;
         Ok(s)
     }
 
-    /// Returns the mutable inner pointer to this C string.
-    ///
-    /// The returned pointer will be valid for as long as `self` is, and points to a contiguous
-    /// region of memory terminated with a nul byte to represent the end of the string.
-    pub fn as_mut_ptr(&mut self) -> *mut c_char {
-        self.bytes.as_mut_ptr()
+    /// Returns a C string slice containing the entire C string array.
+    pub fn as_slice(&self) -> &CStrSlice {
+        unsafe { CStrSlice::from_bytes_unchecked(&self.bytes[..]) }
     }
 
-    /// Returns a C string reference.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use csz::{CStrArray, cstr};
-    ///
-    /// let mut s = CStrArray::<32>::try_from("hello").unwrap();
-    /// assert_eq!(s.as_thin(), cstr!("hello"));
-    /// ```
-    pub const fn as_thin(&self) -> &CStrThin {
-        let ptr = if N > 0 {
-            self.bytes.as_ptr()
-        } else {
-            [0].as_ptr()
-        };
-        unsafe { CStrThin::from_ptr(ptr) }
-    }
-
-    /// Returns the inner array as a mutable reference.
-    ///
-    /// # Safety
-    ///
-    /// The array must contain a nul byte.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// # use csz::CStrArray;
-    /// let mut s = CStrArray::<32>::try_from("inner buffer").unwrap();
-    /// assert!(unsafe { s.inner_mut() }.starts_with(b"inner buffer\0"));
-    /// ```
-    pub unsafe fn inner_mut(&mut self) -> &mut [u8; N] {
-        unsafe { &mut *ptr::addr_of_mut!(self.bytes).cast() }
-    }
-
-    /// Write a byte slice at position `offset` within this C string.
-    ///
-    /// Returns an offset after written bytes.
-    ///
-    /// # Safety
-    ///
-    /// * `offset + bytes.len()` needs to be less than or equal to `capacity`.
-    /// * If a nul terminator was overwritten by this method a call to any other method of this C
-    ///   string is UB. The nul terminator needs to be written by this method before any call to
-    ///   other methods.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// # use csz::CStrArray;
-    /// let mut s = CStrArray::<32>::try_from("foo").unwrap();
-    /// let mut n = s.count_bytes();
-    /// unsafe {
-    ///     n = s.write_bytes_unchecked(n, b"bar");
-    ///     // other methods must not be called because
-    ///     // the string do not ends with a nul terminator
-    ///     n = s.write_bytes_unchecked(n, b"123");
-    ///     // write a nul byte
-    ///     n = s.write_bytes_unchecked(n, b"\0");
-    ///     // safe to call other methods
-    /// }
-    /// assert_eq!(s.to_bytes_with_nul(), b"foobar123\0");
-    /// ```
-    pub unsafe fn write_bytes_unchecked(&mut self, offset: usize, bytes: &[u8]) -> usize {
-        let src = bytes.as_ptr();
-        let len = bytes.len();
-        let dst = self.as_mut_ptr().cast::<u8>();
-        unsafe {
-            ptr::copy_nonoverlapping(src, dst.add(offset), len);
-        }
-        offset + len
-    }
-
-    /// Creates a [Cursor] that will overwrite this string's content.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// # use csz::CStrArray;
-    /// let mut s = CStrArray::<64>::try_from("foobar").unwrap();
-    /// s.cursor().write_bytes(b"banana").unwrap();
-    /// assert_eq!(s.to_bytes(), b"banana");
-    /// ```
-    pub fn cursor(&mut self) -> Cursor<'_> {
-        self.clear();
-        Cursor::new(unsafe { self.inner_mut() }, 0)
-    }
-
-    /// Creates a [Cursor] that will append to the end of this C string.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// # use csz::CStrArray;
-    /// let mut s = CStrArray::<64>::try_from("foo").unwrap();
-    /// s.append().write_bytes(b"bar").unwrap();
-    /// assert_eq!(s.to_bytes(), b"foobar");
-    /// ```
-    pub fn append(&mut self) -> Cursor<'_> {
-        let offset = self.count_bytes();
-        Cursor::new(unsafe { self.inner_mut() }, offset)
+    /// Returns a mutable C string slice containing the entire C string array.
+    pub fn as_slice_mut(&mut self) -> &mut CStrSlice {
+        unsafe { CStrSlice::from_bytes_unchecked_mut(&mut self.bytes[..]) }
     }
 }
 
@@ -287,10 +160,16 @@ impl<const N: usize> Default for CStrArray<N> {
 }
 
 impl<const N: usize> Deref for CStrArray<N> {
-    type Target = CStrThin;
+    type Target = CStrSlice;
 
     fn deref(&self) -> &Self::Target {
-        self.as_thin()
+        self.as_slice()
+    }
+}
+
+impl<const N: usize> DerefMut for CStrArray<N> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        self.as_slice_mut()
     }
 }
 

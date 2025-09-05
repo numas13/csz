@@ -12,7 +12,7 @@ use alloc::ffi::CString;
 
 use crate::{ffi, macros::const_assert_size_eq, utils::memchr, NulError};
 
-/// Representaion of a borrowed C string.
+/// Representation of a borrowed C string.
 ///
 /// # Examples
 ///
@@ -111,7 +111,8 @@ impl CStrThin {
     /// # Examples
     ///
     /// ```
-    /// # use csz::CStrThin;
+    /// use csz::CStrThin;
+    ///
     /// let s = CStrThin::from_bytes_until_nul(b"\0").unwrap();
     /// assert!(s.is_empty());
     ///
@@ -127,7 +128,8 @@ impl CStrThin {
     /// # Examples
     ///
     /// ```
-    /// # use csz::CStrThin;
+    /// use csz::CStrThin;
+    ///
     /// let bytes = b"123456\0";
     /// let s = CStrThin::from_bytes_until_nul(bytes).unwrap();
     /// assert_eq!(bytes.len(), 7);
@@ -182,7 +184,7 @@ impl CStrThin {
     /// Invalid UTF-8 character:
     ///
     /// ```
-    /// # use csz::CStrThin;
+    /// use csz::CStrThin;
     ///
     /// let word = CStrThin::from_bytes_with_nul(b"inva\x83lid\0").unwrap();
     /// assert_eq!(8, word.chars().count());
@@ -236,7 +238,8 @@ impl CStrThin {
     /// # Examples
     ///
     /// ```
-    /// # use csz::CStrThin;
+    /// use csz::CStrThin;
+    ///
     /// let bytes = b"123456\0";
     /// let s = CStrThin::from_bytes_until_nul(bytes).unwrap();
     /// assert_eq!(s.to_bytes(), b"123456");
@@ -252,7 +255,8 @@ impl CStrThin {
     /// # Examples
     ///
     /// ```
-    /// # use csz::CStrThin;
+    /// use csz::CStrThin;
+    ///
     /// let bytes = b"123456\0";
     /// let s = CStrThin::from_bytes_until_nul(bytes).unwrap();
     /// assert_eq!(s.to_bytes_with_nul(), b"123456\0");
@@ -270,7 +274,8 @@ impl CStrThin {
     /// # Examples
     ///
     /// ```
-    /// # use csz::CStrThin;
+    /// use csz::CStrThin;
+    ///
     /// let bytes = b"foo\0bar\0";
     /// let s = unsafe { CStrThin::from_bytes_until_nul_unchecked(bytes) };
     /// assert_eq!(s.to_bytes(), b"foo");
@@ -284,7 +289,8 @@ impl CStrThin {
     /// # Examples
     ///
     /// ```
-    /// # use csz::CStrThin;
+    /// use csz::CStrThin;
+    ///
     /// let bytes = b"hello\0 world\0";
     /// let s = CStrThin::from_bytes_until_nul(bytes).unwrap();
     /// assert_eq!(s.to_bytes(), b"hello");
@@ -293,7 +299,8 @@ impl CStrThin {
     /// Creating a `CStrThin` without a trailing nul terminator is an error:
     ///
     /// ```
-    /// # use csz::CStrThin;
+    /// use csz::CStrThin;
+    ///
     /// let bytes = b"hello world";
     /// assert!(CStrThin::from_bytes_until_nul(bytes).is_err());
     /// ```
@@ -308,7 +315,8 @@ impl CStrThin {
     /// # Examples
     ///
     /// ```
-    /// # use csz::CStrThin;
+    /// use csz::CStrThin;
+    ///
     /// let bytes = b"hello world\0";
     /// let s = CStrThin::from_bytes_with_nul(bytes).unwrap();
     /// assert_eq!(s.to_bytes(), b"hello world");
@@ -317,7 +325,8 @@ impl CStrThin {
     /// Creating a `CStrThin` without a trailing nul terminator is an error:
     ///
     /// ```
-    /// # use csz::CStrThin;
+    /// use csz::CStrThin;
+    ///
     /// let bytes = b"hello world";
     /// assert!(CStrThin::from_bytes_with_nul(bytes).is_err());
     /// ```
@@ -325,7 +334,8 @@ impl CStrThin {
     /// Creating a `CStrThin` with an interior nul byte is an error:
     ///
     /// ```
-    /// # use csz::CStrThin;
+    /// use csz::CStrThin;
+    ///
     /// let bytes = b"hello\0 world\0";
     /// assert!(CStrThin::from_bytes_with_nul(bytes).is_err());
     /// ```

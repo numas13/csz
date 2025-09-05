@@ -52,7 +52,8 @@ impl<'a> Cursor<'a> {
     /// # Examples
     ///
     /// ```
-    /// # use csz::Cursor;
+    /// use csz::Cursor;
+    ///
     /// let mut bytes = [0; 128];
     /// let cur = Cursor::new(&mut bytes, 0);
     /// assert_eq!(cur.capacity(), 128);
@@ -66,7 +67,8 @@ impl<'a> Cursor<'a> {
     /// # Examples
     ///
     /// ```
-    /// # use csz::Cursor;
+    /// use csz::Cursor;
+    ///
     /// let mut bytes = [0; 64];
     /// let mut cur = Cursor::new(&mut bytes, 0);
     /// assert_eq!(cur.position(), 0);
@@ -124,7 +126,8 @@ impl<'a> Cursor<'a> {
     /// # Examples
     ///
     /// ```
-    /// # use csz::Cursor;
+    /// use csz::Cursor;
+    ///
     /// let mut bytes = [b'x'; 32];
     /// let mut cur = Cursor::new(&mut bytes, 0);
     /// cur.write_bytes(b"foo").unwrap();
@@ -136,7 +139,8 @@ impl<'a> Cursor<'a> {
     /// Writing a byte slice with an interior nul byte is an error:
     ///
     /// ```
-    /// # use csz::Cursor;
+    /// use csz::Cursor;
+    ///
     /// let mut bytes = [0; 32];
     /// let mut cur = Cursor::new(&mut bytes, 0);
     /// assert!(cur.write_bytes(b"foo\0bar").is_err());
@@ -146,7 +150,8 @@ impl<'a> Cursor<'a> {
     /// a byte slice:
     ///
     /// ```
-    /// # use csz::Cursor;
+    /// use csz::Cursor;
+    ///
     /// let mut bytes = [b'x'; 8];
     /// let mut cur = Cursor::new(&mut bytes, 0);
     /// assert!(cur.write_bytes(b"1234").is_ok());
@@ -167,7 +172,8 @@ impl<'a> Cursor<'a> {
     /// # Examples
     ///
     /// ```
-    /// # use csz::Cursor;
+    /// use csz::Cursor;
+    ///
     /// let mut bytes = [b'x'; 32];
     /// let mut cur = Cursor::new(&mut bytes, 0);
     /// cur.write_bytes_until_nul(b"foo\0baz\0").unwrap();
@@ -179,7 +185,8 @@ impl<'a> Cursor<'a> {
     /// Writing a byte slice without a nul byte in a byte slice is an error:
     ///
     /// ```
-    /// # use csz::Cursor;
+    /// use csz::Cursor;
+    ///
     /// let mut bytes = [0; 32];
     /// let mut cur = Cursor::new(&mut bytes, 0);
     /// assert!(cur.write_bytes_until_nul(b"hello").is_err());
@@ -189,7 +196,8 @@ impl<'a> Cursor<'a> {
     /// a byte slice:
     ///
     /// ```
-    /// # use csz::Cursor;
+    /// use csz::Cursor;
+    ///
     /// let mut bytes = [b'x'; 8];
     /// let mut cur = Cursor::new(&mut bytes, 0);
     /// assert!(cur.write_bytes_until_nul(b"1234\0foobar").is_ok());
@@ -227,7 +235,8 @@ impl<'a> Cursor<'a> {
     /// # Examples
     ///
     /// ```
-    /// # use csz::Cursor;
+    /// use csz::Cursor;
+    ///
     /// let mut bytes = [b'x'; 8];
     /// let mut cur = Cursor::new(&mut bytes, 0);
     /// cur.write_str("hello").unwrap();

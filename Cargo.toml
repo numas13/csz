@@ -20,3 +20,6 @@ alloc = []
 
 [dependencies]
 libc = { version = "0.2", optional = true }
+
+[lints.rust]
+missing-docs = { level = "warn" }
