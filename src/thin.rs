@@ -284,6 +284,12 @@ impl CStrThin {
         unsafe { Self::from_ptr(bytes.as_ptr().cast()) }
     }
 
+    /// Creates a C string reference from a `c_char` slice with at least one nul byte.
+    pub fn from_slice_until_nul(bytes: &[c_char]) -> Result<&CStrThin, NulError> {
+        let slice = unsafe { slice::from_raw_parts(bytes.as_ptr().cast(), bytes.len()) };
+        Self::from_bytes_until_nul(slice)
+    }
+
     /// Creates a C string reference from a byte slice with at least one nul byte.
     ///
     /// # Examples
