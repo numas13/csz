@@ -59,6 +59,26 @@ impl<const N: usize> CStrArray<N> {
         unsafe { bytes.assume_init() }
     }
 
+    /// Creates a mutable reference to `CStrArray` from a `c_char` array and clears it.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use core::ffi::c_char;
+    /// use csz::CStrArray;
+    ///
+    /// let mut array = [0; 32];
+    /// for (i, c) in b"abc\0".iter().enumerate() {
+    ///     array[i] = *c as c_char;
+    /// }
+    /// let s = CStrArray::new_in_array(&mut array);
+    /// assert!(s.is_empty());
+    /// assert_eq!(s.capacity(), 32);
+    /// ```
+    pub fn new_in_array(array: &mut [c_char; N]) -> &mut CStrArray<N> {
+        Self::new_in(unsafe { &mut *(array as *mut _ as *mut [u8; N]) })
+    }
+
     /// Creates a mutable reference to `CStrArray` from a byte array and clears it.
     ///
     /// # Examples

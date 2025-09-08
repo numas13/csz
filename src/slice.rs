@@ -6,7 +6,7 @@ use core::{
     hash::{Hash, Hasher},
     mem,
     ops::Deref,
-    ptr,
+    ptr, slice,
 };
 
 use crate::{macros::const_assert_size_eq, utils::memchr, CStrThin, Cursor, NulError};
@@ -37,6 +37,27 @@ const_assert_size_eq!(c_char, u8);
 const_assert_size_eq!(&[c_char], &CStrSlice);
 
 impl CStrSlice {
+    /// Creates a mutable reference to `CStrSlice` from a `c_char` slice and clears it.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use core::ffi::c_char;
+    /// use csz::CStrSlice;
+    ///
+    /// let mut slice = [0; 32];
+    /// for (i, c) in b"abc\0".iter().enumerate() {
+    ///     slice[i] = *c as c_char;
+    /// }
+    /// let s = CStrSlice::new_in_slice(&mut slice);
+    /// assert!(s.is_empty());
+    /// assert_eq!(s.capacity(), 32);
+    /// ```
+    pub fn new_in_slice(slice: &mut [c_char]) -> &mut CStrSlice {
+        let bytes = unsafe { slice::from_raw_parts_mut(slice.as_mut_ptr().cast(), slice.len()) };
+        Self::new_in(bytes)
+    }
+
     /// Creates a mutable reference to `CStrSlice` from a byte slice and clears it.
     ///
     /// # Examples
