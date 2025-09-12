@@ -1,7 +1,8 @@
-//! Safer wrappers for nul-terminated C strings.
-
+#![doc = include_str!("../README.md")]
 #![cfg_attr(not(test), no_std)]
+#![cfg_attr(docsrs, feature(doc_auto_cfg))]
 #![deny(unsafe_op_in_unsafe_fn)]
+#![warn(missing_docs)]
 
 #[cfg(feature = "alloc")]
 extern crate alloc;

@@ -15,11 +15,13 @@ categories = ["data-structures", "development-tools::ffi", "no-std", "no-std::no
 all-features = true
 
 [features]
-default = []
+default = ["link_libc"]
+## Links to the C standard library.
+link_libc = []
+## Use the libc crate for FFI with the C standard library.
+libc = ["dep:libc"]
+## Enables linking with the alloc crate.
 alloc = []
 
 [dependencies]
 libc = { version = "0.2", optional = true }
-
-[lints.rust]
-missing-docs = { level = "warn" }
