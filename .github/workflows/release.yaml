@@ -1,0 +1,25 @@
+name: Create release
+
+on:
+  push:
+    tags:
+      - 'v[0-9]+.**'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Pushed release tag
+    runs-on: ubuntu-latest
+    steps:
+      - name: Create release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          tag: ${{ github.ref_name }}
+        run: |
+          gh release create "$tag" \
+              --title "csz $tag" \
+              --target "$GITHUB_SHA" \
+              --repo "$GITHUB_REPOSITORY" \
+              --generate-notes
