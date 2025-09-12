@@ -5,7 +5,7 @@ mod imp {
     #[allow(non_camel_case_types)]
     type size_t = usize;
 
-    #[cfg_attr(feature = "link_libc", link(name = "c"))]
+    #[cfg_attr(all(not(windows), feature = "link_libc"), link(name = "c"))]
     extern "C" {
         pub fn strlen(c: *const c_char) -> size_t;
         pub fn strstr(s: *const c_char, n: *const c_char) -> *mut c_char;
