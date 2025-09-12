@@ -208,7 +208,7 @@ impl CStrBox {
                     let ptr = ffi::realloc(self.ptr.as_ptr().cast(), new_len).cast::<c_char>();
                     assert!(!ptr.is_null());
                     ptr::copy_nonoverlapping(bytes.as_ptr().cast(), ptr.add(len), bytes.len());
-                    *ptr.add(new_len) = 0;
+                    *ptr.add(new_len - 1) = 0;
                     self.ptr = NonNull::new_unchecked(ptr);
                 }
                 Ok(())
