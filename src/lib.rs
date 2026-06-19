@@ -1,6 +1,6 @@
 #![doc = include_str!("../README.md")]
 #![cfg_attr(not(test), no_std)]
-#![cfg_attr(docsrs, feature(doc_auto_cfg))]
+#![cfg_attr(all(doc, docsrs), feature(doc_cfg))]
 #![deny(unsafe_op_in_unsafe_fn)]
 #![warn(missing_docs)]
 
