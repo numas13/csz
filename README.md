@@ -27,6 +27,6 @@ Add the following to your `Cargo.toml`:
 csz = "0.1"
 ```
 
-# Rust version support
+# Minimum Supported Rust Version (MSRV)
 
-The minimum supported Rust toolchain version is currently Rust 1.64.
+This version of crate requires Rust `1.68` or later.
