@@ -45,8 +45,6 @@ macro_rules! cstr {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-
     use crate::CStrThin;
 
     const_assert!(true);
