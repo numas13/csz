@@ -32,7 +32,7 @@ use crate::{
 #[derive(Copy, Clone)]
 #[repr(transparent)]
 pub struct CStrArray<const N: usize> {
-    bytes: [u8; N],
+    bytes: [MaybeUninit<u8>; N],
 }
 
 const_assert_size_eq!(c_char, u8);
@@ -50,13 +50,11 @@ impl<const N: usize> CStrArray<N> {
     /// assert_eq!(s.to_bytes(), b"")
     /// ```
     pub fn new() -> CStrArray<N> {
-        let mut bytes = MaybeUninit::<Self>::uninit();
+        let mut bytes = [MaybeUninit::uninit(); N];
         if N > 0 {
-            unsafe {
-                (*bytes.as_mut_ptr()).bytes[0] = 0;
-            }
+            bytes[0].write(0);
         }
-        unsafe { bytes.assume_init() }
+        Self { bytes }
     }
 
     /// Creates a mutable reference to `CStrArray` from a `c_char` array and clears it.
@@ -164,12 +162,14 @@ impl<const N: usize> CStrArray<N> {
 
     /// Returns a C string slice containing the entire C string array.
     pub fn as_slice(&self) -> &CStrSlice {
-        unsafe { CStrSlice::from_bytes_unchecked(&self.bytes[..]) }
+        let bytes = self.bytes.as_ptr() as *const [u8; N];
+        unsafe { CStrSlice::from_bytes_unchecked(&*bytes) }
     }
 
     /// Returns a mutable C string slice containing the entire C string array.
     pub fn as_slice_mut(&mut self) -> &mut CStrSlice {
-        unsafe { CStrSlice::from_bytes_unchecked_mut(&mut self.bytes[..]) }
+        let bytes = self.bytes.as_mut_ptr() as *mut [u8; N];
+        unsafe { CStrSlice::from_bytes_unchecked_mut(&mut *bytes) }
     }
 }
 
