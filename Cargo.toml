@@ -2,7 +2,7 @@
 name = "csz"
 description = "Abstractions for nul-terminated C strings"
 license = "MIT"
-version = "0.3.1"
+version = "0.1.0"
 authors = ["Denis Drakhnia <numas13@gmail.com>"]
 edition = "2021"
 rust-version = "1.68"
