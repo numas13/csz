@@ -4,7 +4,7 @@ use core::{
     ffi::{c_char, CStr},
     fmt,
     hash::{Hash, Hasher},
-    mem,
+    mem::{self, MaybeUninit},
     ops::Deref,
     ptr, slice,
 };
@@ -30,7 +30,7 @@ use crate::{macros::const_assert_size_eq, utils::memchr, CStrThin, Cursor, NulEr
 /// ```
 #[repr(transparent)]
 pub struct CStrSlice {
-    bytes: [u8],
+    bytes: [MaybeUninit<u8>],
 }
 
 const_assert_size_eq!(c_char, u8);
@@ -72,7 +72,28 @@ impl CStrSlice {
     /// assert_eq!(s.capacity(), 32);
     /// ```
     pub fn new_in(bytes: &mut [u8]) -> &mut CStrSlice {
-        let s = unsafe { Self::from_bytes_unchecked_mut(bytes) };
+        let bytes = unsafe { mem::transmute::<&mut [u8], &mut [MaybeUninit<u8>]>(bytes) };
+        Self::new_in_uninit(bytes)
+    }
+
+    /// Creates a mutable reference to `CStrSlice` from a byte slice and clears it.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use std::mem::MaybeUninit;
+    /// use csz::CStrSlice;
+    ///
+    /// let mut bytes = [MaybeUninit::uninit(); 32];
+    /// for (i, c) in b"abc\0".iter().enumerate() {
+    ///     bytes[i].write(*c);
+    /// }
+    /// let s = CStrSlice::new_in_uninit(&mut bytes);
+    /// assert!(s.is_empty());
+    /// assert_eq!(s.capacity(), 32);
+    /// ```
+    pub fn new_in_uninit(bytes: &mut [MaybeUninit<u8>]) -> &mut CStrSlice {
+        let s = unsafe { mem::transmute::<&mut [MaybeUninit<u8>], &mut CStrSlice>(bytes) };
         s.clear();
         s
     }
@@ -195,7 +216,7 @@ impl CStrSlice {
     /// ```
     pub fn clear(&mut self) {
         if self.capacity() > 0 {
-            self.bytes[0] = 0;
+            self.bytes[0].write(b'\0');
         }
     }
 
@@ -296,7 +317,7 @@ impl CStrSlice {
     /// ```
     pub fn cursor(&mut self) -> Cursor<'_> {
         self.clear();
-        Cursor::new(&mut self.bytes, 0)
+        Cursor::new_uninit(&mut self.bytes, 0)
     }
 
     /// Creates a [Cursor] that will append to the end of this C string.
@@ -314,11 +335,11 @@ impl CStrSlice {
     /// ```
     pub fn append(&mut self) -> Cursor<'_> {
         let offset = self.count_bytes();
-        Cursor::new(&mut self.bytes, offset)
+        Cursor::new_uninit(&mut self.bytes, offset)
     }
 
     /// Returns the inner slice.
-    pub const fn inner_slice(&self) -> &[u8] {
+    pub const fn inner_slice(&self) -> &[MaybeUninit<u8>] {
         &self.bytes
     }
 
@@ -331,18 +352,21 @@ impl CStrSlice {
     /// # Examples
     ///
     /// ```
+    /// use std::mem::MaybeUninit;
     /// use csz::CStrSlice;
     ///
-    /// let mut buf = [0; 32];
-    /// let mut s = CStrSlice::new_in(&mut buf);
+    /// let mut buf = [MaybeUninit::uninit(); 32];
+    /// let mut s = CStrSlice::new_in_uninit(&mut buf);
     /// unsafe {
     ///     let inner = s.inner_slice_mut();
-    ///     let test = b"inner buffer";
-    ///     inner[..test.len()].copy_from_slice(test);
+    ///     let test = b"inner buffer\0";
+    ///     for i in 0..test.len() {
+    ///         inner[i].write(test[i]);
+    ///     }
     /// }
     /// assert_eq!(s.to_bytes(), b"inner buffer");
     /// ```
-    pub unsafe fn inner_slice_mut(&mut self) -> &mut [u8] {
+    pub unsafe fn inner_slice_mut(&mut self) -> &mut [MaybeUninit<u8>] {
         &mut self.bytes
     }
 }

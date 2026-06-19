@@ -1,4 +1,8 @@
-use core::{fmt, ptr};
+use core::{
+    fmt,
+    mem::{self, MaybeUninit},
+    ptr,
+};
 
 use crate::{utils::memchr, CStrThin};
 
@@ -29,13 +33,19 @@ pub enum CursorError {
 /// assert!(buffer.starts_with(b"half-life\0"))
 /// ```
 pub struct Cursor<'a> {
-    buffer: &'a mut [u8],
+    buffer: &'a mut [MaybeUninit<u8>],
     offset: usize,
 }
 
 impl<'a> Cursor<'a> {
     /// Creates a new `Cursor`.
     pub fn new(buffer: &'a mut [u8], offset: usize) -> Cursor<'a> {
+        let buffer = unsafe { mem::transmute::<&'a mut [u8], &'a mut [MaybeUninit<u8>]>(buffer) };
+        Self::new_uninit(buffer, offset)
+    }
+
+    /// Creates a new `Cursor`.
+    pub fn new_uninit(buffer: &'a mut [MaybeUninit<u8>], offset: usize) -> Cursor<'a> {
         Self { buffer, offset }
     }
 
@@ -114,7 +124,7 @@ impl<'a> Cursor<'a> {
             }
             self.offset += bytes.len();
             // write nul terminator
-            self.buffer[self.offset] = b'\0';
+            self.buffer[self.offset].write(b'\0');
             Ok(())
         } else {
             Err(CursorError::OverflowError)
