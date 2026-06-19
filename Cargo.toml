@@ -1,6 +1,6 @@
 [package]
 name = "csz"
-description = "Abstractions for nul-terminated C strings"
+description = "Safe wrappers for nul-terminated C strings"
 license = "MIT"
 version = "0.1.0"
 authors = ["Denis Drakhnia <numas13@gmail.com>"]
