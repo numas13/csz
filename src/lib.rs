@@ -11,6 +11,7 @@ extern crate alloc;
 extern crate std;
 
 mod array;
+#[cfg(not(miri))]
 mod boxed;
 mod cursor;
 mod ext_cstr;
@@ -20,7 +21,10 @@ mod slice;
 mod thin;
 mod utils;
 
-pub use crate::{array::*, boxed::*, cursor::*, ext_cstr::*, slice::*, thin::*};
+pub use crate::{array::*, cursor::*, ext_cstr::*, slice::*, thin::*};
+
+#[cfg(not(miri))]
+pub use crate::boxed::*;
 
 /// An error indicating that no nul byte was present or that a byte slice contains interior nul
 /// bytes.

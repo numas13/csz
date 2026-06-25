@@ -27,3 +27,6 @@ check-msrv:
 
 test:
     cargo test {{tests_args}}
+
+miri:
+    MIRIFLAGS="-Zmiri-tree-borrows" cargo +nightly miri test {{tests_args}}
