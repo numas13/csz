@@ -1,11 +1,14 @@
 #![doc = include_str!("../README.md")]
-#![cfg_attr(not(test), no_std)]
+#![no_std]
 #![cfg_attr(all(doc, docsrs), feature(doc_cfg))]
 #![deny(unsafe_op_in_unsafe_fn)]
 #![warn(missing_docs)]
 
 #[cfg(feature = "alloc")]
 extern crate alloc;
+
+#[cfg(test)]
+extern crate std;
 
 mod array;
 mod boxed;
