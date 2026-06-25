@@ -9,8 +9,7 @@ use core::{
 };
 
 use crate::{
-    macros::const_assert_size_eq, utils::memchr, CStrBox, CStrSlice, CStrThin, CursorError,
-    NulError,
+    macros::const_assert_size_eq, utils::memchr, CStrSlice, CStrThin, CursorError, NulError,
 };
 
 /// An owned C string with a fixed-size capacity.
@@ -226,12 +225,6 @@ impl<const N: usize> TryFrom<&str> for CStrArray<N> {
             .write_bytes(value.as_bytes())
             .map_err(|_| NulError(()))?;
         Ok(s)
-    }
-}
-
-impl<const N: usize> From<&'_ CStrArray<N>> for CStrBox {
-    fn from(value: &CStrArray<N>) -> Self {
-        CStrBox::from(value.as_thin())
     }
 }
 

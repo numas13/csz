@@ -645,15 +645,6 @@ impl fmt::Debug for CStrThin {
     }
 }
 
-#[cfg(feature = "alloc")]
-impl alloc::borrow::ToOwned for CStrThin {
-    type Owned = crate::CStrBox;
-
-    fn to_owned(&self) -> Self::Owned {
-        self.into()
-    }
-}
-
 impl Hash for CStrThin {
     fn hash<H: Hasher>(&self, state: &mut H) {
         self.bytes().for_each(|i| i.hash(state));
@@ -804,6 +795,8 @@ impl Iterator for Chars<'_> {
 mod tests {
     use super::*;
 
+    use std::{format, string::ToString};
+
     use crate::cstr;
 
     #[test]
@@ -825,13 +818,6 @@ mod tests {
         let s1 = format!("{:?}", cstr!("foo\x1b123"));
         let s2 = format!("{:?}", "foo\x1b123");
         assert_eq!(s1, s2);
-    }
-
-    #[cfg(feature = "alloc")]
-    #[test]
-    fn to_owned() {
-        let s = cstr!("hello");
-        let _: crate::CStrBox = s.to_owned();
     }
 
     #[test]

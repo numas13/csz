@@ -9,7 +9,10 @@ use core::{
     ptr::{self, NonNull},
 };
 
-use crate::{ffi, macros::const_assert_size_eq, utils::memchr, CStrThin, NulError};
+#[cfg(feature = "alloc")]
+use alloc::borrow::ToOwned;
+
+use crate::{ffi, macros::const_assert_size_eq, utils::memchr, CStrArray, CStrThin, NulError};
 
 /// An owned C string allocated using `malloc`.
 ///
@@ -314,6 +317,12 @@ impl PartialEq<CStrBox> for CStrThin {
     }
 }
 
+impl<const N: usize> From<&'_ CStrArray<N>> for CStrBox {
+    fn from(value: &CStrArray<N>) -> Self {
+        CStrBox::from(value.as_thin())
+    }
+}
+
 impl PartialEq<CStr> for CStrBox {
     fn eq(&self, other: &CStr) -> bool {
         self.as_c_str().eq(<&CStrThin>::from(other))
@@ -374,9 +383,20 @@ impl Hash for CStrBox {
     }
 }
 
+#[cfg(feature = "alloc")]
+impl ToOwned for CStrThin {
+    type Owned = CStrBox;
+
+    fn to_owned(&self) -> Self::Owned {
+        self.into()
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    use std::format;
 
     use crate::cstr;
 
@@ -442,5 +462,12 @@ mod tests {
         let s2 = CStrThin::from_bytes_with_nul(b"foobar\0").unwrap();
 
         assert_eq!(hash(&s1), hash(&s2));
+    }
+
+    #[cfg(feature = "alloc")]
+    #[test]
+    fn to_owned() {
+        let s = cstr!("hello");
+        let _: crate::CStrBox = s.to_owned();
     }
 }
