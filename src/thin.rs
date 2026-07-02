@@ -12,7 +12,7 @@ use alloc::ffi::CString;
 
 use crate::{ffi, macros::const_assert_size_eq, utils::memchr, NulError};
 
-/// Representation of a borrowed C string.
+/// A borrowed C string.
 ///
 /// # Examples
 ///

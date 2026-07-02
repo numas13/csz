@@ -8,6 +8,13 @@ mod imp {
     #[allow(non_camel_case_types)]
     type size_t = usize;
 
+    #[cfg_attr(not(windows), link(name = "c"))]
+    extern "C" {
+        pub fn malloc(size: size_t) -> *mut c_void;
+        pub fn free(ptr: *mut c_void);
+        pub fn realloc(ptr: *mut c_void, size: size_t) -> *mut c_void;
+    }
+
     pub unsafe extern "C" fn memchr(s: *const c_void, c: c_int, n: size_t) -> *mut c_void {
         let s = s.cast::<u8>();
         let c = c as u8;
@@ -74,18 +81,6 @@ mod imp {
             s = s.wrapping_add(1);
         }
     }
-
-    // pub unsafe extern "C" fn malloc(size: size_t) -> *mut c_void {
-    //     todo!()
-    // }
-    //
-    // pub unsafe extern "C" fn free(ptr: *mut c_void) {
-    //     todo!()
-    // }
-    //
-    // pub unsafe extern "C" fn realloc(ptr: *mut c_void, size: size_t) -> *mut c_void {
-    //     todo!()
-    // }
 }
 
 #[cfg(all(not(miri), not(feature = "libc")))]

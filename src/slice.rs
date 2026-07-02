@@ -11,7 +11,7 @@ use core::{
 
 use crate::{macros::const_assert_size_eq, utils::memchr, CStrThin, Cursor, NulError};
 
-/// Representation of a borrowed C string in a byte slice.
+/// A borrowed C string in a byte slice.
 ///
 /// # Examples
 ///

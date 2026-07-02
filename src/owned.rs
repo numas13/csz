@@ -14,44 +14,43 @@ use alloc::borrow::ToOwned;
 
 use crate::{ffi, macros::const_assert_size_eq, utils::memchr, CStrArray, CStrThin, NulError};
 
-/// An owned C string allocated using `malloc`.
+/// An owned C string allocated using C `malloc`.
 ///
 /// # Examples
 ///
 /// ```
-/// use csz::{CStrBox, cstr};
+/// use csz::{CStringThin, cstr};
 ///
-/// extern "C" {
-///     fn puts(s: Option<&CStrBox>); // same as *const c_char
-/// }
+/// // same as *const c_char
+/// unsafe extern "C" fn take_ownership(s: Option<CStringThin>) {}
 ///
-/// let mut s = CStrBox::from(cstr!("string"));
+/// let mut s = CStringThin::from(cstr!("string"));
 /// s.push_c_str(cstr!(" in heap"));
 /// assert_eq!(s.as_c_str(), cstr!("string in heap"));
 /// unsafe {
-///     puts(Some(&s));
+///     take_ownership(Some(s));
 /// }
 /// ```
 #[repr(transparent)]
-pub struct CStrBox {
+pub struct CStringThin {
     ptr: NonNull<c_char>,
 }
 
-const_assert_size_eq!(*const c_char, CStrBox);
-const_assert_size_eq!(*const c_char, Option<CStrBox>);
+const_assert_size_eq!(*const c_char, CStringThin);
+const_assert_size_eq!(*const c_char, Option<CStringThin>);
 
-impl CStrBox {
-    /// Creates a new `CStrBox`.
+impl CStringThin {
+    /// Creates a new `CStringThin`.
     ///
     /// # Examples
     ///
     /// ```
-    /// use csz::CStrBox;
+    /// use csz::CStringThin;
     ///
-    /// let s = CStrBox::new();
+    /// let s = CStringThin::new();
     /// assert_eq!(s.to_bytes(), b"");
     /// ```
-    pub fn new() -> CStrBox {
+    pub fn new() -> CStringThin {
         unsafe {
             let ptr = ffi::malloc(1) as *mut c_char;
             *ptr = 0;
@@ -61,7 +60,7 @@ impl CStrBox {
         }
     }
 
-    /// Consumes the `CStrBox`, returning a wrapped raw pointer.
+    /// Consumes the `CStringThin`, returning a wrapped raw pointer.
     ///
     /// The pointer will be non-null.
     ///
@@ -70,34 +69,34 @@ impl CStrBox {
     /// # Examples
     ///
     /// ```
-    /// use csz::CStrBox;
+    /// use csz::CStringThin;
     ///
     /// extern "C" {
     ///     fn free(s: *mut u8);
     /// }
-    /// let s = CStrBox::try_from("foobar").unwrap();
+    /// let s = CStringThin::try_from("foobar").unwrap();
     /// unsafe {
-    ///     let ptr = CStrBox::into_raw(s);
+    ///     let ptr = CStringThin::into_raw(s);
     ///     free(ptr.cast());
     /// }
     /// ```
-    pub fn into_raw(b: CStrBox) -> *mut c_char {
+    pub fn into_raw(b: CStringThin) -> *mut c_char {
         let ptr = b.ptr.as_ptr();
         mem::forget(b);
         ptr
     }
 
-    /// Constructs a `CStrBox` from a raw pointer.
+    /// Constructs a `CStringThin` from a raw pointer.
     ///
     /// # Safety
     ///
-    /// The pointer must be allocated with `malloc/calloc` funcstions from libc or
-    /// [CStrBox::into_raw] method.
+    /// The pointer must be allocated with `malloc/calloc` functions from libc or
+    /// [CStringThin::into_raw] method.
     ///
     /// # Examples
     ///
     /// ```
-    /// use csz::CStrBox;
+    /// use csz::CStringThin;
     ///
     /// extern "C" {
     ///     fn malloc(size: usize) -> *mut u8;
@@ -109,7 +108,7 @@ impl CStrBox {
     ///     for (i, &c) in bytes.iter().enumerate() {
     ///         ptr.add(i).write(c);
     ///     }
-    ///     let s = CStrBox::from_raw(ptr.cast());
+    ///     let s = CStringThin::from_raw(ptr.cast());
     /// }
     /// ```
     pub const unsafe fn from_raw(ptr: *mut c_char) -> Self {
@@ -118,7 +117,7 @@ impl CStrBox {
         }
     }
 
-    /// Creates a `CStrBox` from a byte slice.
+    /// Creates a `CStringThin` from a byte slice.
     ///
     /// # Safety
     ///
@@ -127,9 +126,9 @@ impl CStrBox {
     /// # Examples
     ///
     /// ```
-    /// use csz::CStrBox;
+    /// use csz::CStringThin;
     ///
-    /// let s = unsafe { CStrBox::from_bytes_unchecked(b"foobar") };
+    /// let s = unsafe { CStringThin::from_bytes_unchecked(b"foobar") };
     /// assert_eq!(s.to_bytes(), b"foobar");
     /// ```
     pub unsafe fn from_bytes_unchecked(bytes: &[u8]) -> Self {
@@ -142,7 +141,7 @@ impl CStrBox {
         }
     }
 
-    /// Creates a `CStrBox` from a byte slice.
+    /// Creates a `CStringThin` from a byte slice.
     ///
     /// # Safety
     ///
@@ -151,9 +150,9 @@ impl CStrBox {
     /// # Examples
     ///
     /// ```
-    /// use csz::CStrBox;
+    /// use csz::CStringThin;
     ///
-    /// let s = unsafe { CStrBox::from_bytes_with_nul_unchecked(b"foobar\0") };
+    /// let s = unsafe { CStringThin::from_bytes_with_nul_unchecked(b"foobar\0") };
     /// assert_eq!(s.to_bytes(), b"foobar");
     /// ```
     pub unsafe fn from_bytes_with_nul_unchecked(bytes: &[u8]) -> Self {
@@ -170,9 +169,9 @@ impl CStrBox {
     /// # Examples
     ///
     /// ```
-    /// use csz::CStrBox;
+    /// use csz::CStringThin;
     ///
-    /// let s = CStrBox::try_from("hello").unwrap();
+    /// let s = CStringThin::try_from("hello").unwrap();
     /// assert_eq!(s.as_c_str().to_bytes(), b"hello");
     /// ```
     pub const fn as_c_str(&self) -> &CStrThin {
@@ -184,9 +183,9 @@ impl CStrBox {
     /// # Examples
     ///
     /// ```
-    /// use csz::CStrBox;
+    /// use csz::CStringThin;
     ///
-    /// let mut s = CStrBox::new();
+    /// let mut s = CStringThin::new();
     /// s.push_bytes(b"foo");
     /// s.push_bytes(b"123");
     /// assert_eq!(s.to_bytes(), b"foo123");
@@ -195,9 +194,9 @@ impl CStrBox {
     /// Pushing a byte slice with nul bytes is an error:
     ///
     /// ```
-    /// use csz::CStrBox;
+    /// use csz::CStringThin;
     ///
-    /// let mut s = CStrBox::new();
+    /// let mut s = CStringThin::new();
     /// assert!(s.push_bytes(b"hello\0world").is_err());
     /// ```
     pub fn push_bytes<T: AsRef<[u8]>>(&mut self, bytes: T) -> Result<(), NulError> {
@@ -221,26 +220,26 @@ impl CStrBox {
 
     /// Allocate space and copy a string slice to the end of this string.
     ///
-    /// See documentation for [CStrBox::push_bytes].
+    /// See documentation for [CStringThin::push_bytes].
     pub fn push_str(&mut self, s: &str) -> Result<(), NulError> {
         self.push_bytes(s.as_bytes())
     }
 
     /// Allocate space and copy a C string to the end of this string.
     ///
-    /// See documentation for [CStrBox::push_bytes].
+    /// See documentation for [CStringThin::push_bytes].
     pub fn push_c_str(&mut self, s: &CStrThin) -> Result<(), NulError> {
         self.push_bytes(s.to_bytes())
     }
 }
 
-impl Default for CStrBox {
+impl Default for CStringThin {
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl Deref for CStrBox {
+impl Deref for CStringThin {
     type Target = CStrThin;
 
     fn deref(&self) -> &Self::Target {
@@ -248,25 +247,25 @@ impl Deref for CStrBox {
     }
 }
 
-impl AsRef<CStrThin> for CStrBox {
+impl AsRef<CStrThin> for CStringThin {
     fn as_ref(&self) -> &CStrThin {
         self
     }
 }
 
-impl From<&CStrThin> for CStrBox {
+impl From<&CStrThin> for CStringThin {
     fn from(value: &CStrThin) -> Self {
         unsafe { Self::from_bytes_with_nul_unchecked(value.to_bytes_with_nul()) }
     }
 }
 
-impl From<&CStr> for CStrBox {
+impl From<&CStr> for CStringThin {
     fn from(value: &CStr) -> Self {
         unsafe { Self::from_bytes_with_nul_unchecked(value.to_bytes_with_nul()) }
     }
 }
 
-impl TryFrom<&str> for CStrBox {
+impl TryFrom<&str> for CStringThin {
     type Error = NulError;
 
     fn try_from(value: &str) -> Result<Self, Self::Error> {
@@ -277,7 +276,7 @@ impl TryFrom<&str> for CStrBox {
     }
 }
 
-impl Drop for CStrBox {
+impl Drop for CStringThin {
     fn drop(&mut self) {
         unsafe {
             ffi::free(self.ptr.as_ptr().cast());
@@ -285,99 +284,99 @@ impl Drop for CStrBox {
     }
 }
 
-impl fmt::Display for CStrBox {
+impl fmt::Display for CStringThin {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         fmt::Display::fmt(self.as_c_str(), fmt)
     }
 }
 
-impl fmt::Debug for CStrBox {
+impl fmt::Debug for CStringThin {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         fmt::Debug::fmt(self.as_c_str(), fmt)
     }
 }
 
-impl Eq for CStrBox {}
+impl Eq for CStringThin {}
 
-impl PartialEq for CStrBox {
+impl PartialEq for CStringThin {
     fn eq(&self, other: &Self) -> bool {
         self.as_c_str().eq(other.as_c_str())
     }
 }
 
-impl PartialEq<CStrThin> for CStrBox {
+impl PartialEq<CStrThin> for CStringThin {
     fn eq(&self, other: &CStrThin) -> bool {
         self.as_c_str().eq(other)
     }
 }
 
-impl PartialEq<CStrBox> for CStrThin {
-    fn eq(&self, other: &CStrBox) -> bool {
+impl PartialEq<CStringThin> for CStrThin {
+    fn eq(&self, other: &CStringThin) -> bool {
         self.eq(other.as_c_str())
     }
 }
 
-impl<const N: usize> From<&'_ CStrArray<N>> for CStrBox {
+impl<const N: usize> From<&'_ CStrArray<N>> for CStringThin {
     fn from(value: &CStrArray<N>) -> Self {
-        CStrBox::from(value.as_thin())
+        CStringThin::from(value.as_thin())
     }
 }
 
-impl PartialEq<CStr> for CStrBox {
+impl PartialEq<CStr> for CStringThin {
     fn eq(&self, other: &CStr) -> bool {
         self.as_c_str().eq(<&CStrThin>::from(other))
     }
 }
 
-impl PartialEq<CStrBox> for CStr {
-    fn eq(&self, other: &CStrBox) -> bool {
+impl PartialEq<CStringThin> for CStr {
+    fn eq(&self, other: &CStringThin) -> bool {
         <&CStrThin>::from(self).eq(other)
     }
 }
 
-impl PartialOrd for CStrBox {
+impl PartialOrd for CStringThin {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         Some(self.cmp(other))
     }
 }
 
-impl PartialOrd<CStrThin> for CStrBox {
+impl PartialOrd<CStrThin> for CStringThin {
     fn partial_cmp(&self, other: &CStrThin) -> Option<Ordering> {
         Some(self.as_c_str().cmp(other))
     }
 }
 
-impl PartialOrd<CStrBox> for CStrThin {
-    fn partial_cmp(&self, other: &CStrBox) -> Option<Ordering> {
+impl PartialOrd<CStringThin> for CStrThin {
+    fn partial_cmp(&self, other: &CStringThin) -> Option<Ordering> {
         Some(self.cmp(other))
     }
 }
 
-impl PartialOrd<CStr> for CStrBox {
+impl PartialOrd<CStr> for CStringThin {
     fn partial_cmp(&self, other: &CStr) -> Option<Ordering> {
         Some(self.as_c_str().cmp(<&CStrThin>::from(other)))
     }
 }
 
-impl PartialOrd<CStrBox> for CStr {
-    fn partial_cmp(&self, other: &CStrBox) -> Option<Ordering> {
+impl PartialOrd<CStringThin> for CStr {
+    fn partial_cmp(&self, other: &CStringThin) -> Option<Ordering> {
         Some(<&CStrThin>::from(self).cmp(other.as_c_str()))
     }
 }
 
-impl Ord for CStrBox {
+impl Ord for CStringThin {
     fn cmp(&self, other: &Self) -> Ordering {
         self.as_c_str().cmp(other.as_c_str())
     }
 }
 
-impl Borrow<CStrThin> for CStrBox {
+impl Borrow<CStrThin> for CStringThin {
     fn borrow(&self) -> &CStrThin {
         self.as_c_str()
     }
 }
 
-impl Hash for CStrBox {
+impl Hash for CStringThin {
     fn hash<H: Hasher>(&self, state: &mut H) {
         self.bytes().for_each(|i| i.hash(state));
     }
@@ -385,7 +384,7 @@ impl Hash for CStrBox {
 
 #[cfg(feature = "alloc")]
 impl ToOwned for CStrThin {
-    type Owned = CStrBox;
+    type Owned = CStringThin;
 
     fn to_owned(&self) -> Self::Owned {
         self.into()
@@ -403,35 +402,35 @@ mod tests {
     #[test]
     fn from_cstr() {
         let s = cstr!("foobar");
-        let b = CStrBox::from(s);
+        let b = CStringThin::from(s);
         assert_eq!(&*b, s);
     }
 
     #[test]
     fn from_str() {
         let s = "abc123";
-        let b = CStrBox::try_from(s).unwrap();
+        let b = CStringThin::try_from(s).unwrap();
         assert_eq!(b.to_str(), Ok(s));
     }
 
     #[test]
     fn display() {
-        let s = CStrBox::try_from("hello").unwrap();
+        let s = CStringThin::try_from("hello").unwrap();
         let s = format!("{s}");
         assert_eq!(s, "hello");
     }
 
     #[test]
     fn debug() {
-        let s = CStrBox::try_from("hello").unwrap();
+        let s = CStringThin::try_from("hello").unwrap();
         let s = format!("{s:?}");
         assert_eq!(s, "\"hello\"");
     }
 
     #[test]
     fn cmp() {
-        let s1 = CStrBox::try_from("foobar").unwrap();
-        let s2 = CStrBox::try_from("foobar").unwrap();
+        let s1 = CStringThin::try_from("foobar").unwrap();
+        let s2 = CStringThin::try_from("foobar").unwrap();
         let s3 = CStrThin::from_bytes_with_nul(b"foobar\0").unwrap();
 
         assert!(s1 == s2);
@@ -444,7 +443,7 @@ mod tests {
 
     #[test]
     fn borrow() {
-        let b = CStrBox::try_from("123abc").unwrap();
+        let b = CStringThin::try_from("123abc").unwrap();
         let s: &CStrThin = b.borrow();
         assert_eq!(s.to_bytes(), b"123abc");
     }
@@ -458,7 +457,7 @@ mod tests {
             s.finish()
         }
 
-        let s1 = CStrBox::try_from("foobar").unwrap();
+        let s1 = CStringThin::try_from("foobar").unwrap();
         let s2 = CStrThin::from_bytes_with_nul(b"foobar\0").unwrap();
 
         assert_eq!(hash(&s1), hash(&s2));
@@ -468,6 +467,6 @@ mod tests {
     #[test]
     fn to_owned() {
         let s = cstr!("hello");
-        let _: crate::CStrBox = s.to_owned();
+        let _: crate::CStringThin = s.to_owned();
     }
 }
